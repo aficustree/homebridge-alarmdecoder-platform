@@ -1,0 +1,34 @@
+{
+  "name": "homebridge-alarmdecoder-sensor",
+  "version": "0.1.0",
+  "description": "An http-based contact and motion sensor plugin for homebridge: https://github.com/nfarina/homebridge, for use with alarmdecoder. Exposes honeywell/dsc motion and contact sensors when used with alarmdecoder.",
+  "license": "BSD-2-Clause",
+  "keywords": [
+    "homebridge-plugin",
+    "homebridge",
+    "homekit"
+  ],
+  "engines": {
+    "node": ">=0.12.0",
+    "homebridge": ">=0.2.0"
+  },
+  "author": "Shaun Baker",
+  "contributors": [
+    "Marcell Tooth"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/aficustree/homebridge-alarmdecoder-sensor.git"
+  },
+  "dependencies": {
+    "request": "^2.65.0"
+  },
+  "readmeFilename": "README.md",
+  "bugs": {
+    "url": "https://github.com/codetwice/homebridge-alarmdecoder-sensor/issues"
+  },
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  }
+}
