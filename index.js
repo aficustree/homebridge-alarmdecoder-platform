@@ -5,9 +5,20 @@ module.exports = function(homebridge){
 };
 
 function alarmdecoderSensorAccessory(log, config) {
-
+    this.log = log;
+    this.name = config.name;
+    this.port = config.port;
 }
 
 alarmdecoderSensorAccessory.prototype = {
-
+    getServices: function() {
+        var services = [];
+        var informationService = new Service.AccessoryInformation();
+        informationService
+            .setCharacteristic(Characteristic.Name, this.name)
+            .setCharacteristic(Characteristic.Manufacturer, 'honeywell/dsc')
+            .setCharacteristic(Characteristic.Model, 'alarmdecoder');
+        services.push(informationService);
+        return services;
+    }
 };
