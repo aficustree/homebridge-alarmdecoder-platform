@@ -1,3 +1,5 @@
+const axios = require('axios'); 
+
 module.exports = function(homebridge){
 	Service = homebridge.hap.Service;
 	Characteristic = homebridge.hap.Characteristic;
@@ -12,6 +14,24 @@ function alarmdecoderSensorAccessory(log, config) {
 }
 
 alarmdecoderSensorAccessory.prototype = {
+    httpListener: function(req, res) {
+		var data = '';
+		
+		if (req.method == "POST") {
+			req.on('data', function(chunk) {
+			  data += chunk;
+			});		
+			req.on('end', function() {
+			  this.log('Received notification and body data:');
+			  this.log(data.toString());
+			}.bind(this));
+		}	
+		res.writeHead(200, {'Content-Type': 'text/plain'});
+		res.end();
+		this.log('notice received, querying state');
+		this.getCurrentState();
+	},
+    
     getState: function(callback) {
         
     },

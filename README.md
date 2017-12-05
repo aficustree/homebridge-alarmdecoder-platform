@@ -1,4 +1,6 @@
 # homebridge-alarmdecoder-sensor
+*NOTE: This project is being reworked to combine with homebridge-alarmdecoder, move to a dynamic platform style construct. It will not work in its current form. DO NOT USE*
+
 Homebridge plugin for the alarmdecoder (alarmdecoder.com) interface to Honeywell/DSC Systems. It requires a functioning alarmdecoder-webapp (https://www.alarmdecoder.com/wiki/index.php/AlarmDecoder_WebApp) for the homebridge plugin to contact (via the rest API). Please make sure your webapp is updated with the latest alarmdecoder python package. 
 
 This plugin exposes contact sensors and motion sensors to HomeKit/Homebridge for use in further automations. 
