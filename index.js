@@ -29,6 +29,22 @@ class AlarmDecoderSystem {
 class AlarmdecoderPlatform {
     constructor (log, config, api) {
         this.log = log;
+        this.port = config.port;
+        this.key = config.key;
+        this.stateURL = config.stateURL;
+        this.zoneURL = config.zoneURL;
+        this.setURL = config.setURL;
+        this.setPIN = config.setPIN;
+        this.name = config.name;
+        this.securityAccessory = null; //used to hold the security system accessory
+        this.zoneAccessories = []; //used to hold all zone accessories
+        this.alarmDecoderZones = []; //used to hold all AlarmDecoderZones, which reference a zone accessory
+        this.alarmDecoderSystem = null;
+        this.axiosHeaderConfig = {headers:{
+            'Authorization':this.key,
+            'Content-Type':'application/json',
+            'Accept':'application/json'
+        }};
         if(api) {
             this.api = api;
             this.api.on('didFinishLaunching', ()=>{
@@ -36,32 +52,21 @@ class AlarmdecoderPlatform {
                 this.initPlatform();
                 this.listener = require('http').createServer(()=>this.httpListener);
                 this.listener.listen(this.port);
+                this.log('listening on port '+this.port);
             });
         }
-        this.port = config.port;
-        this.key = config.key;
-        this.stateURL = config.stateURL;
-        this.zoneURL = config.zoneURL;
-        this.setURL = config.setURL;
-        this.setPIN = config.setPIN;
-
-        this.name = config.name;
-
-        this.securityAccessory = null; //used to hold the security system accessory
-        this.zoneAccessories = []; //used to hold all zone accessories
-        this.alarmDecoderZones = []; //used to hold all AlarmDecoderZones, which reference a zone accessory
-        this.alarmDecoderSystem = null;
     }
 
     // homebridge will restore cached accessories
     configureAccessory(accessory){
         this.log(accessory.displayName, 'Configuring Accessory from Cache');
         accessory.reachable = false; // will turn to true after validated
-        this.addAccesory(accessory, false);
+        this.addAccessory(accessory, false);
     }
 
     // if cached, no publish, otherwise set publish to true
     addAccessory(accessory, publish) {
+        this.log('adding accessory '+ accessory.displayName);
         let securityAccessory = false;
         accessory.on('identify', (paired, callback) => {
             this.log(accessory.displayName, 'Identify!!!');
@@ -97,54 +102,67 @@ class AlarmdecoderPlatform {
                 .setCharacteristic(Characteristic.Manufacturer, 'honeywell/dsc')
                 .setCharacteristic(Characteristic.Model, 'alarmdecoder homebridge plugin');
         }
-        if(securityAccessory)
+        if(securityAccessory) 
             this.securityAccessory = accessory;
         else
             this.zoneAccessories.push(accessory);
-        if (publish)
-            this.api.registerPlatformAccessories('homebridge-alarmdecoder-platform', 'alarmdecoder-platform', accessory);
+        if (publish) {
+            this.log('publishing platform accessory '+accessory.displayName);
+            this.api.registerPlatformAccessories('homebridge-alarmdecoder-platform', 'alarmdecoder-platform', [accessory]);
+        }
         return accessory;
     }
 
-    get _zones() {
-        return [];
-    }
-
-    initPlatform() {
-        for (let zone in this._zones) {
-            var zoneToAdd = new AlarmDecoderZone(zone.zone_id,zone.name,zone.description);
-            var exists = false;
-            // check if zone already exists, otherwise add
-            for(let accessory in this.zoneAccessories) 
-                if(accessory.zoneID == zone.zone_id) {
-                    exists = true;
-                    accessory.reachable=true;
-                    zoneToAdd.accessory=accessory;
-                    break;
+    async initPlatform() {
+        this.log('initalizing platform');
+        try {
+            var response = await axios.get(this.zoneURL,this.axiosHeaderConfig);
+            if (response.status!=200)
+                throw 'platform did not respond';
+            for (let zone in response.data['zones']) {
+                zone = response.data['zones'][zone];
+                var zoneToAdd = new AlarmDecoderZone(zone.zone_id,zone.name,zone.description);
+                var exists = false;
+                // check if zone already exists, otherwise add
+                for(let accessory in this.zoneAccessories) {
+                    accessory = this.zoneAccessories[accessory];
+                    if(accessory.displayName == zone.zone_id+' '+zone.name) {
+                        this.log('found '+accessory.displayName+' from cache, skipping');
+                        exists = true;
+                        accessory.reachable=true;
+                        zoneToAdd.accessory=accessory;
+                        break;
+                    }
                 }
-            if(!exists) {
-                let uuid = UUIDGen.generate(zone.zone_id+zone.name);
-                let newAccessory = new Accessory(zone.zone_id+zone.name, uuid);
-                newAccessory.zoneID=zone.zone_id;
-                let re = new RegExp('motion','i');
-                if(re.exec(zone.zone_id))
-                    newAccessory.addService(Service.MotionSensor, zone.zone_id+zone.name);
-                else
-                    newAccessory.addService(Service.ContactSensor, zone.zone_id+zone.name);
-                newAccessory.reachable=true;
-                this.addAccessory(newAccessory,true);
-                zoneToAdd.accessory=newAccessory;
+                if(!exists) {
+                    let uuid = UUIDGen.generate(zone.zone_id+' '+zone.name);
+                    let newAccessory = new Accessory(zone.zone_id+' '+zone.name, uuid);
+                    newAccessory.zoneID=zone.zone_id;
+                    let re = new RegExp('motion','i');
+                    if(re.exec(zone.zone_id))
+                        newAccessory.addService(Service.MotionSensor, zone.zone_id+' '+zone.name);
+                    else
+                        newAccessory.addService(Service.ContactSensor, zone.zone_id+' '+zone.name);
+                    newAccessory.reachable=true;
+                    this.addAccessory(newAccessory,true);
+                    zoneToAdd.accessory=newAccessory;
+                }
+                this.alarmDecoderZones.push(zoneToAdd);
             }
-            this.alarmDecoderZones.push(zoneToAdd);
+            if(!this.securityAccessory) {
+                this.log('adding security system accessory');
+                let uuid = UUIDGen.generate(this.name);
+                let newAccessory = new Accessory(this.name, uuid);
+                newAccessory.addService(Service.SecuritySystem,this.name);
+                this.addAccessory(newAccessory,true);
+                this.securityAccessory = newAccessory;
+            }
+            this.securityAccessory.reachable=true;
+            this.alarmDecoderSystem = new AlarmDecoderSystem(this.securityAccessory);
+            this.getState(true);
         }
-        if(!this.securityAccessory) {
-            let uuid = UUIDGen.generate(this.name);
-            let newAccessory = new Accessory(this.name, uuid);
-            newAccessory.addService(Service.SecuritySystem,this.name);
-            newAccessory.reachable=true;
-            this.addAccessory(newAccessory,true);
-            this.SecurityAccessory = newAccessory;
-            this.alarmDecoderSystem = new AlarmDecoderSystem(this.SecurityAccessory);
+        catch (err) {
+            this.log(err);
         }
     }
 
@@ -168,9 +186,9 @@ class AlarmdecoderPlatform {
 
     async getState(report=false) {
         try {
-            var response = await axios.get(this.stateURL);
+            var response = await axios.get(this.stateURL,this.axiosHeaderConfig);
             if (response) {
-                let stateObj = JSON.parse(response);
+                let stateObj = response.data;
                 this.log(stateObj);
                 if(stateObj.lastmessage && (stateObj.lastmessage.includes('NIGHT') || stateObj.lastmessage.includes('INSTANT')))
                     stateObj.panel_armed_night = true;
@@ -190,6 +208,7 @@ class AlarmdecoderPlatform {
                         .setCharacteristic(Characteristic.SecuritySystemCurrentState, this.alarmDecoderSystem.state);
                 // set alarm state
                 for(let alarmZone in this.alarmDecoderZones) {
+                    alarmZone=this.alarmDecoderZones[alarmZone];
                     if(stateObj.panel_zones_faulted[alarmZone.zoneID])
                         alarmZone.faulted = true;
                     else
@@ -220,6 +239,7 @@ class AlarmdecoderPlatform {
     getZoneState(zoneID, callback) {
         this.getState(false);
         for(let alarmZone in this.alarmDecoderZones) {
+            alarmZone=this.alarmDecoderZones[alarmZone];
             if(alarmZone.zoneID==zoneID) {
                 if(alarmZone.accessory.getService(Service.MotionSensor))
                     callback(null, alarmZone.faulted);
@@ -263,10 +283,15 @@ class AlarmdecoderPlatform {
         var tempObj = new Object();
         tempObj.keys=codeToSend;
         var body = JSON.stringify(tempObj);
-        var response = await axios.post(this.setURL,body);
-        if(response.status==200)
-            callback(null, response, state);
-        else
-            callback('state set failed', null, null);
+        try {
+            var response = await axios.post(this.setURL,body,this.axiosHeaderConfig);
+            if(response.status!=200)
+                throw('set failed');
+            else
+                callback(null, response, state);
+        }
+        catch (err) {
+            this.log(err);
+        }
     }
 }
