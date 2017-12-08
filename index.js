@@ -39,7 +39,7 @@ class AlarmdecoderPlatform {
         this.securityAccessory = null; //used to hold the security system accessory
         this.zoneAccessories = []; //used to hold all zone accessories
         this.alarmDecoderZones = []; //used to hold all AlarmDecoderZones, which reference a zone accessory
-        this.alarmDecoderSystem = null;
+        this.alarmDecoderSystem = null; //holds the object that includes the securityaccessory
         this.axiosHeaderConfig = {headers:{
             'Authorization':this.key,
             'Content-Type':'application/json',
@@ -76,14 +76,14 @@ class AlarmdecoderPlatform {
             accessory.getService(Service.ContactSensor)
                 .getCharacteristic(Characteristic.ContactSensorState)
                 .on('get', (callback)=>{
-                    this.getZoneState(accessory.zoneID,callback);
+                    this.getZoneState(accessory.displayName,callback);
                 });           
         }
         else if(accessory.getService(Service.MotionSensor)) {
             accessory.getService(Service.MotionSensor)
                 .getCharacteristic(Characteristic.MotionDetected)
                 .on('get', (callback)=>{
-                    this.getZoneState(accessory.zoneID,callback);
+                    this.getZoneState(accessory.displayName,callback);
                 });
         }
         else if(accessory.getService(Service.SecuritySystem)) {
@@ -137,7 +137,7 @@ class AlarmdecoderPlatform {
                 if(!exists) {
                     let uuid = UUIDGen.generate(zone.zone_id+' '+zone.name);
                     let newAccessory = new Accessory(zone.zone_id+' '+zone.name, uuid);
-                    newAccessory.zoneID=zone.zone_id;
+                    //newAccessory.zoneID=zone.zone_id;
                     let re = new RegExp('motion','i');
                     if(re.exec(zone.zone_id))
                         newAccessory.addService(Service.MotionSensor, zone.zone_id+' '+zone.name);
@@ -236,11 +236,12 @@ class AlarmdecoderPlatform {
 
     }
 
-    getZoneState(zoneID, callback) {
+    getZoneState(displayName, callback) {
+        this.log('getting state for '+displayName);
         this.getState(false);
         for(let alarmZone in this.alarmDecoderZones) {
             alarmZone=this.alarmDecoderZones[alarmZone];
-            if(alarmZone.zoneID==zoneID) {
+            if(alarmZone.displayName==displayName) {
                 if(alarmZone.accessory.getService(Service.MotionSensor))
                     callback(null, alarmZone.faulted);
                 else { //otherwise contact center
@@ -257,6 +258,7 @@ class AlarmdecoderPlatform {
     }
 
     getAlarmState(callback) {
+        this.log('getting alarm state');
         this.getState(false);
         if(this.alarmDecoderSystem.state)
             callback(null,this.alarmDecoderSystem.state);
@@ -265,6 +267,7 @@ class AlarmdecoderPlatform {
     }
 
     async setAlarmState(state, callback) {
+        this.log('setting alarm state to '+state);
         var codeToSend = null;
         switch (state) {
         case Characteristic.SecuritySystemTargetState.STAY_ARM:
