@@ -50,7 +50,7 @@ class AlarmdecoderPlatform {
             this.api.on('didFinishLaunching', ()=>{
                 this.log('Cached Accessories Loaded');
                 this.initPlatform();
-                this.listener = require('http').createServer(()=>this.httpListener);
+                this.listener = require('http').createServer((req, res)=>this.httpListener(req, res));
                 this.listener.listen(this.port);
                 this.log('listening on port '+this.port);
             });
@@ -90,11 +90,11 @@ class AlarmdecoderPlatform {
             securityAccessory = true;
             accessory.getService(Service.SecuritySystem)
                 .getCharacteristic(Characteristic.SecuritySystemCurrentState)
-                .on('get', ()=>this.getAlarmState);
+                .on('get', (callback)=>this.getAlarmState(callback));
             accessory.getService(Service.SecuritySystem)
                 .getCharacteristic(Characteristic.SecuritySystemTargetState)
-                //.on('get', ()=>this.getAlarmState)
-                .on('set', ()=>this.setAlarmState);
+                .on('get', (callback)=>this.getAlarmState(callback))
+                .on('set', (state,callback)=>this.setAlarmState(state,callback));
         }
         if(accessory.getService(Service.AccessoryInformation)) {
             accessory.getService(Service.AccessoryInformation)
@@ -139,7 +139,7 @@ class AlarmdecoderPlatform {
                     let newAccessory = new Accessory(zone.zone_id+' '+zone.name, uuid);
                     //newAccessory.zoneID=zone.zone_id;
                     let re = new RegExp('motion','i');
-                    if(re.exec(zone.zone_id))
+                    if(re.exec(zone.zone_id+' '+zone.name))
                         newAccessory.addService(Service.MotionSensor, zone.zone_id+' '+zone.name);
                     else
                         newAccessory.addService(Service.ContactSensor, zone.zone_id+' '+zone.name);
@@ -154,6 +154,7 @@ class AlarmdecoderPlatform {
                 let uuid = UUIDGen.generate(this.name);
                 let newAccessory = new Accessory(this.name, uuid);
                 newAccessory.addService(Service.SecuritySystem,this.name);
+                newAccessory.reachable=true;
                 this.addAccessory(newAccessory,true);
                 this.securityAccessory = newAccessory;
             }
@@ -189,16 +190,16 @@ class AlarmdecoderPlatform {
             var response = await axios.get(this.stateURL,this.axiosHeaderConfig);
             if (response) {
                 let stateObj = response.data;
-                this.log(stateObj);
-                if(stateObj.lastmessage && (stateObj.lastmessage.includes('NIGHT') || stateObj.lastmessage.includes('INSTANT')))
+                if(stateObj.last_message_received && (stateObj.last_message_received.includes('NIGHT') || stateObj.last_message_received.includes('INSTANT')))
                     stateObj.panel_armed_night = true;
                 /* 0 = stay, 1 = away, 2 = night, 3 = disarmed, 4 = alarm */
+                this.log(stateObj);
                 if(stateObj.panel_alarming || stateObj.panel_panicked)
                     this.alarmDecoderSystem.state = 4;
-                else if(stateObj.panel_armed_stay)
-                    this.alarmDecoderSystem.state = 0;
                 else if(stateObj.panel_armed_night)
                     this.alarmDecoderSystem.state = 2;
+                else if(stateObj.panel_armed_stay)
+                    this.alarmDecoderSystem.state = 0;
                 else if(stateObj.panel_armed)
                     this.alarmDecoderSystem.state = 1;
                 else
@@ -209,7 +210,7 @@ class AlarmdecoderPlatform {
                 // set alarm state
                 for(let alarmZone in this.alarmDecoderZones) {
                     alarmZone=this.alarmDecoderZones[alarmZone];
-                    if(stateObj.panel_zones_faulted[alarmZone.zoneID])
+                    if(stateObj.panel_zones_faulted.indexOf(alarmZone.zoneID)!=-1)
                         alarmZone.faulted = true;
                     else
                         alarmZone.faulted = false;
@@ -239,9 +240,9 @@ class AlarmdecoderPlatform {
     getZoneState(displayName, callback) {
         this.log('getting state for '+displayName);
         this.getState(false);
+        var found = false;
         for(let alarmZone in this.alarmDecoderZones) {
             alarmZone=this.alarmDecoderZones[alarmZone];
-            if(alarmZone.displayName==displayName) {
                 if(alarmZone.accessory.getService(Service.MotionSensor))
                     callback(null, alarmZone.faulted);
                 else { //otherwise contact center
@@ -250,18 +251,22 @@ class AlarmdecoderPlatform {
                     else   
                         callback(null,0);
                 }
+                found = true;
+                break;
             }
-            else
-                callback('no zone found',null);
-            break;
+        }
+        if(found==false) {
+            this.log('zone '+displayName+' not found');
+            callback('no zone found',null);
         }
     }
 
     getAlarmState(callback) {
-        this.log('getting alarm state');
+        this.log('getting state for '+this.name);
         this.getState(false);
-        if(this.alarmDecoderSystem.state)
+        if(this.alarmDecoderSystem.state!=null) {
             callback(null,this.alarmDecoderSystem.state);
+        }
         else
             callback('state is null',null);
     }
@@ -286,14 +291,16 @@ class AlarmdecoderPlatform {
         var tempObj = new Object();
         tempObj.keys=codeToSend;
         var body = JSON.stringify(tempObj);
+        this.log(body);
         try {
             var response = await axios.post(this.setURL,body,this.axiosHeaderConfig);
-            if(response.status!=200)
-                throw('set failed');
-            else
+            if(response.status==200 || response.status==204)
                 callback(null, response, state);
+            else
+                throw('set failed');
         }
         catch (err) {
+            callback('set failed',response,this.alarmDecoderSystem.state);
             this.log(err);
         }
     }

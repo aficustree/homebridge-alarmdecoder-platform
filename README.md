@@ -24,7 +24,7 @@ Configuration example with explanation
     "platforms": [
         {
             "platform" : "alarmdecoder-platform",
-            "name" : "AlarmDecoder Platform",
+            "name" : "Alarm System",
             "port" : "PORT TO LISTEN ON",
             "key" : "YOUR API KEY FROM ALARMDECODER GUI",
             "stateURL" : "http://YOURIP:YOURPORT/api/v1/alarmdecoder",
@@ -43,5 +43,22 @@ Configuration example with explanation
 - The **setPIN** is your PIN that you use to arm/disarm the system. Only type the base pin, do not add the arm/disarm button press (i.e., if you arm the system by typing 12342, your pin is 1234)
 
 ## Configuration of Alarmedecoder GUI
-Text goes here later
+- Go to your installation of the Alarmdecoder GUI
+- Go to settings
+- Notifications
+- Create a new `custom` notification
+- Select / Tick the following:
+    - Alarm system is triggered
+    - Alarm system stops signaling
+    - A panic has been detected
+    - A fire is detected
+    - Alarm system is armed
+    - Alarm system is disarmed
+    - A zone has faulted
+    - A zone has been restored
+- Under 'custom settings'
+- URL = the ip address of your homebridge
+- Port = the port as specified above
+- Method = Post
+
 
