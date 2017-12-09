@@ -1,14 +1,15 @@
-# homebridge-alarmdecoder-sensor
-Homebridge plugin for the alarmdecoder (alarmdecoder.com) interface to Honeywell/DSC Systems. It requires a functioning alarmdecoder-webapp (https://www.alarmdecoder.com/wiki/index.php/AlarmDecoder_WebApp) for the homebridge plugin to contact (via the rest API). Please make sure your webapp is updated with the latest alarmdecoder python package. 
+# homebridge-alarmdecoder-platform
 
-This plugin exposes contact sensors and motion sensors to HomeKit/Homebridge for use in further automations. 
+Homebridge dynamic platform plugin for the alarmdecoder (alarmdecoder.com) interface to Honeywell/DSC Systems. It requires a functioning alarmdecoder-webapp (https://www.alarmdecoder.com/wiki/index.php/AlarmDecoder_WebApp) for the homebridge plugin to contact (via the rest API). Please make sure your webapp is updated with the latest alarmdecoder python package. 
 
-Thea alarmdecoder webui must be setup to push zone status changes using the enclosed directions
+This plugin exposes the security system and any configured contact sensors or motion sensors (i.e., the security system's zones) to HomeKit/Homebridge for use in further automations. 
+
+Thea alarmdecoder webui must be setup to push alarm events and zone status changes using the enclosed directions.
 
 ## Installation
 
 1. Install homebridge using: `npm install -g homebridge`
-2. Install homebridge-alarmdecoder using: `npm install -g git+https://github.com/aficustree/homebridge-alarmdecoder-sensor.git#master`
+2. Install homebridge-alarmdecoder using: `npm install -g git+https://github.com/aficustree/homebridge-alarmdecoder-platform#master`
 3. Update your configuration file. See sample-config.json in this repository for a sample. 
 
 ## Configuration
@@ -20,17 +21,16 @@ The configuration options are the following:
 Configuration example with explanation
 
 ```
-    "accessories": [
+    "platforms": [
         {
-            "accessory": "alarmdecoder-sensor",
-            "name": "Honeywell Sensors",
-            "key": "YOUR API KEY FROM ALARMDECODER GUI",
-            "port": "port to listen on for push messages from alarmdecoder",
-            "zones": {
-                "zone 1": { "url": "/1", "type": "contact" },
-                "zone 2": { "url": "/2", "type": "motion" },
-                "zone 3": { "url": "/3", "type": "contact" }
-            }
+            "platform" : "alarmdecoder-platform",
+            "name" : "Alarm System",
+            "port" : "PORT TO LISTEN ON",
+            "key" : "YOUR API KEY FROM ALARMDECODER GUI",
+            "stateURL" : "http://YOURIP:YOURPORT/api/v1/alarmdecoder",
+            "zoneURL" : "http://YOURIP:YOURPORT/api/v1/zones",
+            "setURL" : "http://YOURIP:YOURPORT/api/v1/alarmdecoder/send",
+            "setPIN" : "YOUR PIN"
         }
     ]
 
@@ -39,10 +39,26 @@ Configuration example with explanation
 - The **name** parameter determines the name of the security system you will see in HomeKit.
 - the **key** parameter reflects the API key from the alarmdecoder GUI
 - The **port** parameter reflects the port the alarmdecoder-sensor will listen for updates from alarmdecoder GUI
-- The **zone** section describes the zones
-  - The **url** portion refences the url the alarmdecoder GUI will post to specific for that zone
-  - The **type** portion must be either `contact` or `motion` depending on the zone type
+- The **stateURL**, **zoneURL** and **setURL** entries show the URL that the plugin will query for the list of zones, the state of the alarm system (and all faulted zones) and the URL to send virtual keypresses. Replcae YOURIP and YOURPORT with the IP and port of the alarmdecoder-webgui interface.
+- The **setPIN** is your PIN that you use to arm/disarm the system. Only type the base pin, do not add the arm/disarm button press (i.e., if you arm the system by typing 12342, your pin is 1234)
 
 ## Configuration of Alarmedecoder GUI
-Text goes here later
+- Go to your installation of the Alarmdecoder GUI
+- Go to settings
+- Notifications
+- Create a new `custom` notification
+- Select / Tick the following:
+    - Alarm system is triggered
+    - Alarm system stops signaling
+    - A panic has been detected
+    - A fire is detected
+    - Alarm system is armed
+    - Alarm system is disarmed
+    - A zone has faulted
+    - A zone has been restored
+- Under 'custom settings'
+- URL = the ip address of your homebridge
+- Port = the port as specified above
+- Method = Post
+
 
