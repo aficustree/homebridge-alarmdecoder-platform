@@ -243,6 +243,7 @@ class AlarmdecoderPlatform {
         var found = false;
         for(let alarmZone in this.alarmDecoderZones) {
             alarmZone=this.alarmDecoderZones[alarmZone];
+            if((alarmZone.zoneID+' '+alarmZone.name)==displayName) {
                 if(alarmZone.accessory.getService(Service.MotionSensor))
                     callback(null, alarmZone.faulted);
                 else { //otherwise contact center
