@@ -1,3 +1,5 @@
+import { access } from 'fs';
+
 var Accessory, Service, Characteristic, UUIDGen;
 var axios = require('axios'); 
 
@@ -86,6 +88,20 @@ class AlarmdecoderPlatform {
                     this.getZoneState(accessory.displayName,callback);
                 });
         }
+        else if(accessory.getService(Service.CarbonDioxideSensor)) {
+            accessory.getService(Service.CarbonDioxideSensor)
+                .getCharacteristic(Characteristic.CarbonDioxideDetected)
+                .on('get', (callback)=>{
+                    this.getZoneState(accessory.displayName,callback);
+                });
+        }
+        else if(accessory.getService(Service.SmokeSensor)) {
+            accessory.getService(Service.SmokeSensor)
+                .getCharacteristic(Characteristic.SmokeDetected)
+                .on('get', (callback)=>{
+                    this.getZoneState(accessory.displayName,callback);
+                });
+        }
         else if(accessory.getService(Service.SecuritySystem)) {
             securityAccessory = true;
             accessory.getService(Service.SecuritySystem)
@@ -138,9 +154,15 @@ class AlarmdecoderPlatform {
                     let uuid = UUIDGen.generate(zone.zone_id+' '+zone.name);
                     let newAccessory = new Accessory(zone.zone_id+' '+zone.name, uuid);
                     //newAccessory.zoneID=zone.zone_id;
-                    let re = new RegExp('motion','i');
-                    if(re.exec(zone.zone_id+' '+zone.name))
+                    let reMotion = new RegExp('motion','i');
+                    let reSmoke = new RegExp('smoke','i');
+                    let reCarbon = new RegExp('carbon','i');
+                    if(reMotion.exec(zone.zone_id+' '+zone.name))
                         newAccessory.addService(Service.MotionSensor, zone.zone_id+' '+zone.name);
+                    else if(reSmoke.exec(zone.zone_id+' '+zone.name))
+                        newAccessory.addService(Service.SmokeSensor, zone.zone_id+' '+zone.name);
+                    else if(reCarbon.exec(zone.zone_id+' '+zone.name))
+                        newAccessory.addService(Service.CarbonDioxideSensor, zone.zone_id+' '+zone.name);
                     else
                         newAccessory.addService(Service.ContactSensor, zone.zone_id+' '+zone.name);
                     newAccessory.reachable=true;
@@ -226,6 +248,22 @@ class AlarmdecoderPlatform {
                             else
                                 alarmZone.accessory.getService(Service.ContactSensor)
                                     .setCharacteristic(Characteristic.ContactSensorState, 0);
+                        }
+                        else if(alarmZone.accessory.getService(Service.CarbonDioxideSensor)) {
+                            if(alarmZone.faulted)
+                                alarmZone.accessory.getService(Service.CarbonDioxideSensor)
+                                    .setCharacteristic(Characteristic.CarbonDioxideDetected, 1);
+                            else
+                                alarmZone.accessory.getService(Service.CarbonDioxideSensor)
+                                    .setCharacteristic(Characteristic.CarbonDioxideDetected, 0);
+                        }
+                        else if(alarmZone.accessory.getService(Service.SmokeSensor)) {
+                            if(alarmZone.faulted)
+                                alarmZone.accessory.getService(Service.SmokeSensor)
+                                    .setCharacteristic(Characteristic.SmokeDetected, 1);
+                            else
+                                alarmZone.accessory.getService(Service.SmokeSensor)
+                                    .setCharacteristic(Characteristic.SmokeDetected, 0);
                         }
                     }
                 }
