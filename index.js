@@ -1,5 +1,3 @@
-import { access } from 'fs';
-
 var Accessory, Service, Characteristic, UUIDGen;
 var axios = require('axios'); 
 
@@ -74,7 +72,7 @@ class AlarmdecoderPlatform {
             this.log(accessory.displayName, 'Identify!!!');
             callback();
         });
-        if(accessory.getService(Service.ContactSensor)) {
+        if(accessory.getService(Service.ContactSensor)) { //needs a refactor
             accessory.getService(Service.ContactSensor)
                 .getCharacteristic(Characteristic.ContactSensorState)
                 .on('get', (callback)=>{
@@ -277,14 +275,14 @@ class AlarmdecoderPlatform {
 
     getZoneState(displayName, callback) {
         this.log('getting state for '+displayName);
-        this.getState(false);
+        this.getState(false); //don't publish state as it's being called from homekit and the callback will update instead
         var found = false;
         for(let alarmZone in this.alarmDecoderZones) {
             alarmZone=this.alarmDecoderZones[alarmZone];
             if((alarmZone.zoneID+' '+alarmZone.name)==displayName) {
                 if(alarmZone.accessory.getService(Service.MotionSensor))
                     callback(null, alarmZone.faulted);
-                else { //otherwise contact center
+                else { //otherwise contact, smoke or carbon sensor which all use 1/0 in hap-nodejs instead of a bool
                     if(alarmZone.faulted)
                         callback(null,1);
                     else   
@@ -307,7 +305,7 @@ class AlarmdecoderPlatform {
             callback(null,this.alarmDecoderSystem.state);
         }
         else
-            callback('state is null',null);
+            callback('state is null',null); //would only happen if call occurs and the alarmdecoder-UI is inaccessable, so basically it shouldn't
     }
 
     async setAlarmState(state, callback) {
@@ -333,7 +331,7 @@ class AlarmdecoderPlatform {
         this.log(body);
         try {
             var response = await axios.post(this.setURL,body,this.axiosHeaderConfig);
-            if(response.status==200 || response.status==204)
+            if(response.status==200 || response.status==204) //should be a 204
                 callback(null, response, state);
             else
                 throw('set failed');
