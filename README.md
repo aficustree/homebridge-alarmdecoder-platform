@@ -4,7 +4,9 @@ Homebridge dynamic platform plugin for the alarmdecoder (alarmdecoder.com) inter
 
 This plugin exposes the security system and any configured contact sensors or motion sensors (i.e., the security system's zones) to HomeKit/Homebridge for use in further automations. 
 
-Thea alarmdecoder webui must be setup to push alarm events and zone status changes using the enclosed directions.
+The alarmdecoder webui must be setup to push alarm events and zone status changes using the enclosed directions.
+
+**IMPORTANT** The name of the zone in the AlarmDecoder WebUI must have the word 'motion', 'smoke' or 'carbon' in the name for the plugin to use the special motion, smoke or carbon monoxide services, otherwise all zones will load as contact sensors. You can name the zones in `settings->zones->zone name`. Contact sensors are the default so you don't have to put 'contact' in the name anywhere.
 
 ## Installation
 

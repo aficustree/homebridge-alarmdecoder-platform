@@ -72,7 +72,7 @@ class AlarmdecoderPlatform {
             this.log(accessory.displayName, 'Identify!!!');
             callback();
         });
-        if(accessory.getService(Service.ContactSensor)) {
+        if(accessory.getService(Service.ContactSensor)) { //needs a refactor
             accessory.getService(Service.ContactSensor)
                 .getCharacteristic(Characteristic.ContactSensorState)
                 .on('get', (callback)=>{
@@ -82,6 +82,20 @@ class AlarmdecoderPlatform {
         else if(accessory.getService(Service.MotionSensor)) {
             accessory.getService(Service.MotionSensor)
                 .getCharacteristic(Characteristic.MotionDetected)
+                .on('get', (callback)=>{
+                    this.getZoneState(accessory.displayName,callback);
+                });
+        }
+        else if(accessory.getService(Service.CarbonMonoxideSensor)) {
+            accessory.getService(Service.CarbonMonoxideSensor)
+                .getCharacteristic(Characteristic.CarbonMonoxideDetected)
+                .on('get', (callback)=>{
+                    this.getZoneState(accessory.displayName,callback);
+                });
+        }
+        else if(accessory.getService(Service.SmokeSensor)) {
+            accessory.getService(Service.SmokeSensor)
+                .getCharacteristic(Characteristic.SmokeDetected)
                 .on('get', (callback)=>{
                     this.getZoneState(accessory.displayName,callback);
                 });
@@ -138,9 +152,15 @@ class AlarmdecoderPlatform {
                     let uuid = UUIDGen.generate(zone.zone_id+' '+zone.name);
                     let newAccessory = new Accessory(zone.zone_id+' '+zone.name, uuid);
                     //newAccessory.zoneID=zone.zone_id;
-                    let re = new RegExp('motion','i');
-                    if(re.exec(zone.zone_id+' '+zone.name))
+                    let reMotion = new RegExp('motion','i');
+                    let reSmoke = new RegExp('smoke','i');
+                    let reCarbon = new RegExp('carbon','i');
+                    if(reMotion.exec(zone.zone_id+' '+zone.name))
                         newAccessory.addService(Service.MotionSensor, zone.zone_id+' '+zone.name);
+                    else if(reSmoke.exec(zone.zone_id+' '+zone.name))
+                        newAccessory.addService(Service.SmokeSensor, zone.zone_id+' '+zone.name);
+                    else if(reCarbon.exec(zone.zone_id+' '+zone.name))
+                        newAccessory.addService(Service.CarbonMonoxideSensor, zone.zone_id+' '+zone.name);
                     else
                         newAccessory.addService(Service.ContactSensor, zone.zone_id+' '+zone.name);
                     newAccessory.reachable=true;
@@ -227,6 +247,22 @@ class AlarmdecoderPlatform {
                                 alarmZone.accessory.getService(Service.ContactSensor)
                                     .setCharacteristic(Characteristic.ContactSensorState, 0);
                         }
+                        else if(alarmZone.accessory.getService(Service.CarbonMonoxideSensor)) {
+                            if(alarmZone.faulted)
+                                alarmZone.accessory.getService(Service.CarbonMonoxideSensor)
+                                    .setCharacteristic(Characteristic.CarbonMonoxideDetected, 1);
+                            else
+                                alarmZone.accessory.getService(Service.CarbonMonoxideSensor)
+                                    .setCharacteristic(Characteristic.CarbonMonoxideDetected, 0);
+                        }
+                        else if(alarmZone.accessory.getService(Service.SmokeSensor)) {
+                            if(alarmZone.faulted)
+                                alarmZone.accessory.getService(Service.SmokeSensor)
+                                    .setCharacteristic(Characteristic.SmokeDetected, 1);
+                            else
+                                alarmZone.accessory.getService(Service.SmokeSensor)
+                                    .setCharacteristic(Characteristic.SmokeDetected, 0);
+                        }
                     }
                 }
             }
@@ -239,14 +275,14 @@ class AlarmdecoderPlatform {
 
     getZoneState(displayName, callback) {
         this.log('getting state for '+displayName);
-        this.getState(false);
+        this.getState(false); //don't publish state as it's being called from homekit and the callback will update instead
         var found = false;
         for(let alarmZone in this.alarmDecoderZones) {
             alarmZone=this.alarmDecoderZones[alarmZone];
             if((alarmZone.zoneID+' '+alarmZone.name)==displayName) {
                 if(alarmZone.accessory.getService(Service.MotionSensor))
                     callback(null, alarmZone.faulted);
-                else { //otherwise contact center
+                else { //otherwise contact, smoke or carbon sensor which all use 1/0 in hap-nodejs instead of a bool
                     if(alarmZone.faulted)
                         callback(null,1);
                     else   
@@ -269,7 +305,7 @@ class AlarmdecoderPlatform {
             callback(null,this.alarmDecoderSystem.state);
         }
         else
-            callback('state is null',null);
+            callback('state is null',null); //would only happen if call occurs and the alarmdecoder-UI is inaccessable, so basically it shouldn't
     }
 
     async setAlarmState(state, callback) {
@@ -295,7 +331,7 @@ class AlarmdecoderPlatform {
         this.log(body);
         try {
             var response = await axios.post(this.setURL,body,this.axiosHeaderConfig);
-            if(response.status==200 || response.status==204)
+            if(response.status==200 || response.status==204) //should be a 204
                 callback(null, response, state);
             else
                 throw('set failed');
