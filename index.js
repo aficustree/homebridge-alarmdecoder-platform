@@ -86,9 +86,9 @@ class AlarmdecoderPlatform {
                     this.getZoneState(accessory.displayName,callback);
                 });
         }
-        else if(accessory.getService(Service.CarbonDioxideSensor)) {
-            accessory.getService(Service.CarbonDioxideSensor)
-                .getCharacteristic(Characteristic.CarbonDioxideDetected)
+        else if(accessory.getService(Service.CarbonMonoxideSensor)) {
+            accessory.getService(Service.CarbonMonoxideSensor)
+                .getCharacteristic(Characteristic.CarbonMonoxideDetected)
                 .on('get', (callback)=>{
                     this.getZoneState(accessory.displayName,callback);
                 });
@@ -160,7 +160,7 @@ class AlarmdecoderPlatform {
                     else if(reSmoke.exec(zone.zone_id+' '+zone.name))
                         newAccessory.addService(Service.SmokeSensor, zone.zone_id+' '+zone.name);
                     else if(reCarbon.exec(zone.zone_id+' '+zone.name))
-                        newAccessory.addService(Service.CarbonDioxideSensor, zone.zone_id+' '+zone.name);
+                        newAccessory.addService(Service.CarbonMonoxideSensor, zone.zone_id+' '+zone.name);
                     else
                         newAccessory.addService(Service.ContactSensor, zone.zone_id+' '+zone.name);
                     newAccessory.reachable=true;
@@ -247,13 +247,13 @@ class AlarmdecoderPlatform {
                                 alarmZone.accessory.getService(Service.ContactSensor)
                                     .setCharacteristic(Characteristic.ContactSensorState, 0);
                         }
-                        else if(alarmZone.accessory.getService(Service.CarbonDioxideSensor)) {
+                        else if(alarmZone.accessory.getService(Service.CarbonMonoxideSensor)) {
                             if(alarmZone.faulted)
-                                alarmZone.accessory.getService(Service.CarbonDioxideSensor)
-                                    .setCharacteristic(Characteristic.CarbonDioxideDetected, 1);
+                                alarmZone.accessory.getService(Service.CarbonMonoxideSensor)
+                                    .setCharacteristic(Characteristic.CarbonMonoxideDetected, 1);
                             else
-                                alarmZone.accessory.getService(Service.CarbonDioxideSensor)
-                                    .setCharacteristic(Characteristic.CarbonDioxideDetected, 0);
+                                alarmZone.accessory.getService(Service.CarbonMonoxideSensor)
+                                    .setCharacteristic(Characteristic.CarbonMonoxideDetected, 0);
                         }
                         else if(alarmZone.accessory.getService(Service.SmokeSensor)) {
                             if(alarmZone.faulted)
