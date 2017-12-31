@@ -256,6 +256,7 @@ class AlarmdecoderPlatform {
                                     .setCharacteristic(Characteristic.CarbonMonoxideDetected, 0);
                         }
                         else if(alarmZone.accessory.getService(Service.SmokeSensor)) {
+                            this.log('zone is a smoke sensor, status is '+alarmZone.faulted);
                             if(alarmZone.faulted)
                                 alarmZone.accessory.getService(Service.SmokeSensor)
                                     .setCharacteristic(Characteristic.SmokeDetected, 1);
