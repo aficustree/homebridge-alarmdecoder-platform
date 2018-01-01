@@ -32,7 +32,12 @@ Configuration example with explanation
             "stateURL" : "http://YOURIP:YOURPORT/api/v1/alarmdecoder",
             "zoneURL" : "http://YOURIP:YOURPORT/api/v1/zones",
             "setURL" : "http://YOURIP:YOURPORT/api/v1/alarmdecoder/send",
-            "setPIN" : "YOUR PIN"
+            "setPIN" : "YOUR PIN",
+            "DSCorHoneywell" : "Honeywell",
+            "DSCStay" : "<F4>",
+            "DSCAway" : "<S5>",
+            "DSCReset" : "<S7>",
+            "DSCExit" : "<S8>"
         }
     ]
 
@@ -43,6 +48,8 @@ Configuration example with explanation
 - The **port** parameter reflects the port the alarmdecoder-sensor will listen for updates from alarmdecoder GUI
 - The **stateURL**, **zoneURL** and **setURL** entries show the URL that the plugin will query for the list of zones, the state of the alarm system (and all faulted zones) and the URL to send virtual keypresses. Replcae YOURIP and YOURPORT with the IP and port of the alarmdecoder-webgui interface.
 - The **setPIN** is your PIN that you use to arm/disarm the system. Only type the base pin, do not add the arm/disarm button press (i.e., if you arm the system by typing 12342, your pin is 1234)
+- The **DSCorHoneywell** should be set to either "DSC" or "Honeywell" depending on the type of alarm panel
+- Values for **DSCStay**, **DSCAway**, **DSCReset** and **DSCExit** should not be changed and are not used if the panel type is listed as Honeywell
 
 ## Configuration of Alarmedecoder GUI
 - Go to your installation of the Alarmdecoder GUI

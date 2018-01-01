@@ -35,6 +35,15 @@ class AlarmdecoderPlatform {
         this.zoneURL = config.zoneURL;
         this.setURL = config.setURL;
         this.setPIN = config.setPIN;
+        this.platformType = config.DSCorHoneywell;
+        let rePlatformType = new RegExp('dsc','i');
+        if(rePlatformType.exec(this.platformType)) {
+            this.isDSC = true;
+            this.DSCAway = config.DSCAway;
+            this.DSCStay = config.DSCStay;
+            this.DSCReset = config.DSCReset;
+            this.DSCExit = config.DSCExit;
+        }
         this.name = config.name;
         this.securityAccessory = null; //used to hold the security system accessory
         this.zoneAccessories = []; //used to hold all zone accessories
@@ -314,10 +323,10 @@ class AlarmdecoderPlatform {
         var codeToSend = null;
         switch (state) {
         case Characteristic.SecuritySystemTargetState.STAY_ARM:
-            codeToSend = this.setPIN+'3';
+            codeToSend = this.isDSC ? this.DSCStay : this.setPIN+'3';
             break;
         case Characteristic.SecuritySystemTargetState.AWAY_ARM :
-            codeToSend = this.setPIN+'2';
+            codeToSend = this.isDSC ? this.DSCAway : this.setPIN+'2';
             break;
         case Characteristic.SecuritySystemTargetState.NIGHT_ARM:
             codeToSend = this.setPIN+'33';
