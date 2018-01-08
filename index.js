@@ -340,6 +340,9 @@ class AlarmdecoderPlatform {
         var body = JSON.stringify(tempObj);
         this.log(body);
         try {
+            // ignore disarm requests if panel is already disarmed and it's a DSC panel (otherwise it rearms itself)
+            if(this.isDSC && (state == Characteristic.SecuritySystemTargetState.DISARM) && (this.alarmDecoderSystem.state == 3))
+                throw('disarm request for DSC panel but system is already disarmed, ignoring');
             var response = await axios.post(this.setURL,body,this.axiosHeaderConfig);
             if(response.status==200 || response.status==204) //should be a 204
                 callback(null, response, state);
