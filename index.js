@@ -35,6 +35,15 @@ class AlarmdecoderPlatform {
         this.zoneURL = config.zoneURL;
         this.setURL = config.setURL;
         this.setPIN = config.setPIN;
+        this.platformType = config.DSCorHoneywell;
+        let rePlatformType = new RegExp('dsc','i');
+        if(rePlatformType.exec(this.platformType)) {
+            this.isDSC = true;
+            this.DSCAway = config.DSCAway;
+            this.DSCStay = config.DSCStay;
+            this.DSCReset = config.DSCReset;
+            this.DSCExit = config.DSCExit;
+        }
         this.name = config.name;
         this.securityAccessory = null; //used to hold the security system accessory
         this.zoneAccessories = []; //used to hold all zone accessories
@@ -256,6 +265,7 @@ class AlarmdecoderPlatform {
                                     .setCharacteristic(Characteristic.CarbonMonoxideDetected, 0);
                         }
                         else if(alarmZone.accessory.getService(Service.SmokeSensor)) {
+                            this.log('zone is a smoke sensor, status is '+alarmZone.faulted);
                             if(alarmZone.faulted)
                                 alarmZone.accessory.getService(Service.SmokeSensor)
                                     .setCharacteristic(Characteristic.SmokeDetected, 1);
@@ -313,10 +323,10 @@ class AlarmdecoderPlatform {
         var codeToSend = null;
         switch (state) {
         case Characteristic.SecuritySystemTargetState.STAY_ARM:
-            codeToSend = this.setPIN+'3';
+            codeToSend = this.isDSC ? this.DSCStay : this.setPIN+'3';
             break;
         case Characteristic.SecuritySystemTargetState.AWAY_ARM :
-            codeToSend = this.setPIN+'2';
+            codeToSend = this.isDSC ? this.DSCAway : this.setPIN+'2';
             break;
         case Characteristic.SecuritySystemTargetState.NIGHT_ARM:
             codeToSend = this.setPIN+'33';
@@ -330,6 +340,9 @@ class AlarmdecoderPlatform {
         var body = JSON.stringify(tempObj);
         this.log(body);
         try {
+            // ignore disarm requests if panel is already disarmed and it's a DSC panel (otherwise it rearms itself)
+            if(this.isDSC && (state == Characteristic.SecuritySystemTargetState.DISARM) && (this.alarmDecoderSystem.state == 3))
+                throw('disarm request for DSC panel but system is already disarmed, ignoring');
             var response = await axios.post(this.setURL,body,this.axiosHeaderConfig);
             if(response.status==200 || response.status==204) //should be a 204
                 callback(null, response, state);
