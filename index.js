@@ -35,6 +35,7 @@ class AlarmdecoderPlatform {
         this.zoneURL = config.zoneURL;
         this.setURL = config.setURL;
         this.setPIN = config.setPIN;
+        this.debug = config.debug | false;
         this.platformType = config.DSCorHoneywell;
         let rePlatformType = new RegExp('dsc','i');
         if(rePlatformType.exec(this.platformType)) {
@@ -205,7 +206,8 @@ class AlarmdecoderPlatform {
             });		
             req.on('end', () => {
                 this.log('Received notification and body data:');
-                this.log(data.toString());
+                if(this.debug)
+                    this.log(data.toString());
             });
         }	
         res.writeHead(200, {'Content-Type': 'text/plain'});

@@ -37,7 +37,8 @@ Configuration example with explanation
             "DSCStay" : "<F4>",
             "DSCAway" : "<S5>",
             "DSCReset" : "<S7>",
-            "DSCExit" : "<S8>"
+            "DSCExit" : "<S8>",
+            "Debug" : false
         }
     ]
 
