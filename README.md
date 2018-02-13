@@ -11,7 +11,7 @@ The alarmdecoder webui must be setup to push alarm events and zone status change
 ## Installation
 
 1. Install homebridge using: `npm install -g homebridge`
-2. Install homebridge-alarmdecoder using: `npm install -g git+https://github.com/aficustree/homebridge-alarmdecoder-platform#master`
+2. Install homebridge-alarmdecoder-platform using: `npm install -g git+https://github.com/aficustree/homebridge-alarmdecoder-platform#master`
 3. Update your configuration file. See sample-config.json in this repository for a sample. 
 
 ## Configuration
@@ -37,7 +37,8 @@ Configuration example with explanation
             "DSCStay" : "<F4>",
             "DSCAway" : "<S5>",
             "DSCReset" : "<S7>",
-            "DSCExit" : "<S8>"
+            "DSCExit" : "<S8>",
+            "Debug" : false
         }
     ]
 
@@ -70,4 +71,9 @@ Configuration example with explanation
 - Port = the port as specified above
 - Method = Post
 
+## License
+
+Copyright 2018, [aficustree](https://github.com/aficustree)
+
+Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the [License](./LICENSE).
 

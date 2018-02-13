@@ -35,6 +35,7 @@ class AlarmdecoderPlatform {
         this.zoneURL = config.zoneURL;
         this.setURL = config.setURL;
         this.setPIN = config.setPIN;
+        this.debug = config.debug | false;
         this.platformType = config.DSCorHoneywell;
         let rePlatformType = new RegExp('dsc','i');
         if(rePlatformType.exec(this.platformType)) {
@@ -205,7 +206,8 @@ class AlarmdecoderPlatform {
             });		
             req.on('end', () => {
                 this.log('Received notification and body data:');
-                this.log(data.toString());
+                if(this.debug)
+                    this.log(data.toString());
             });
         }	
         res.writeHead(200, {'Content-Type': 'text/plain'});
@@ -222,7 +224,8 @@ class AlarmdecoderPlatform {
                 if(stateObj.last_message_received && (stateObj.last_message_received.includes('NIGHT') || stateObj.last_message_received.includes('INSTANT')))
                     stateObj.panel_armed_night = true;
                 /* 0 = stay, 1 = away, 2 = night, 3 = disarmed, 4 = alarm */
-                this.log(stateObj);
+                if(this.debug)
+                    this.log(stateObj);
                 if(stateObj.panel_alarming || stateObj.panel_panicked)
                     this.alarmDecoderSystem.state = 4;
                 else if(stateObj.panel_armed_night)
@@ -338,7 +341,8 @@ class AlarmdecoderPlatform {
         var tempObj = new Object();
         tempObj.keys=codeToSend;
         var body = JSON.stringify(tempObj);
-        this.log(body);
+        if(this.debug)
+            this.log(body);
         try {
             // ignore disarm requests if panel is already disarmed and it's a DSC panel (otherwise it rearms itself)
             if(this.isDSC && (state == Characteristic.SecuritySystemTargetState.DISARM) && (this.alarmDecoderSystem.state == 3))
