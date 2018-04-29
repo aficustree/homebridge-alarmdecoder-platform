@@ -225,7 +225,7 @@ class AlarmdecoderPlatform {
                 if(stateObj.last_message_received && (stateObj.last_message_received.includes('NIGHT') || stateObj.last_message_received.includes('INSTANT')))
                     stateObj.panel_armed_night = true;
                 /* 0 = stay, 1 = away, 2 = night, 3 = disarmed, 4 = alarm */
-                debug(stateObj);
+                debug(stateObj.toString());
                 if(stateObj.panel_alarming || stateObj.panel_panicked)
                     this.alarmDecoderSystem.state = 4;
                 else if(stateObj.panel_armed_night)
