@@ -1,5 +1,6 @@
 var Accessory, Service, Characteristic, UUIDGen;
 var axios = require('axios'); 
+var debug = require('debug');
 
 module.exports = function(homebridge){
     Accessory = homebridge.platformAccessory;
@@ -205,14 +206,14 @@ class AlarmdecoderPlatform {
                 data += chunk;
             });		
             req.on('end', () => {
-                this.log('Received notification and body data:');
+                debug('Received notification and body data:');
                 if(this.debug)
-                    this.log(data.toString());
+                    debug(data.toString());
             });
         }	
         res.writeHead(200, {'Content-Type': 'text/plain'});
         res.end();
-        this.log('Getting current state since ping received');
+        debug('Getting current state since ping received');
         this.getState(true);
     }
 
@@ -224,8 +225,7 @@ class AlarmdecoderPlatform {
                 if(stateObj.last_message_received && (stateObj.last_message_received.includes('NIGHT') || stateObj.last_message_received.includes('INSTANT')))
                     stateObj.panel_armed_night = true;
                 /* 0 = stay, 1 = away, 2 = night, 3 = disarmed, 4 = alarm */
-                if(this.debug)
-                    this.log(stateObj);
+                debug(stateObj);
                 if(stateObj.panel_alarming || stateObj.panel_panicked)
                     this.alarmDecoderSystem.state = 4;
                 else if(stateObj.panel_armed_night)
@@ -268,7 +268,7 @@ class AlarmdecoderPlatform {
                                     .updateCharacteristic(Characteristic.CarbonMonoxideDetected, 0);
                         }
                         else if(alarmZone.accessory.getService(Service.SmokeSensor)) {
-                            this.log('zone is a smoke sensor, status is '+alarmZone.faulted);
+                            debug('zone is a smoke sensor, status is '+alarmZone.faulted);
                             if(alarmZone.faulted)
                                 alarmZone.accessory.getService(Service.SmokeSensor)
                                     .updateCharacteristic(Characteristic.SmokeDetected, 1);
@@ -287,7 +287,7 @@ class AlarmdecoderPlatform {
     }
 
     getZoneState(displayName, callback) {
-        this.log('getting state for '+displayName);
+        debug('getting state for '+displayName);
         this.getState(false); //don't publish state as it's being called from homekit and the callback will update instead
         var found = false;
         for(let alarmZone in this.alarmDecoderZones) {
@@ -306,13 +306,13 @@ class AlarmdecoderPlatform {
             }
         }
         if(found==false) {
-            this.log('zone '+displayName+' not found');
+            debug('zone '+displayName+' not found');
             callback('no zone found',null);
         }
     }
 
     getAlarmState(callback) {
-        this.log('getting state for '+this.name);
+        debug('getting state for '+this.name);
         this.getState(false);
         if(this.alarmDecoderSystem.state!=null) {
             callback(null,this.alarmDecoderSystem.state);
@@ -341,8 +341,7 @@ class AlarmdecoderPlatform {
         var tempObj = new Object();
         tempObj.keys=codeToSend;
         var body = JSON.stringify(tempObj);
-        if(this.debug)
-            this.log(body);
+        debug(body);
         try {
             // ignore disarm requests if panel is already disarmed and it's a DSC panel (otherwise it rearms itself)
             if(this.isDSC && (state == Characteristic.SecuritySystemTargetState.DISARM) && (this.alarmDecoderSystem.state == 3))
