@@ -225,7 +225,7 @@ class AlarmdecoderPlatform {
                 if(stateObj.last_message_received && (stateObj.last_message_received.includes('NIGHT') || stateObj.last_message_received.includes('INSTANT')))
                     stateObj.panel_armed_night = true;
                 /* 0 = stay, 1 = away, 2 = night, 3 = disarmed, 4 = alarm */
-                debug(stateObj.toString());
+                this.log(stateObj.toString());
                 if(stateObj.panel_alarming || stateObj.panel_panicked)
                     this.alarmDecoderSystem.state = 4;
                 else if(stateObj.panel_armed_night)
@@ -325,7 +325,7 @@ class AlarmdecoderPlatform {
         this.log('setting alarm state to '+state);
         var codeToSend = null;
         switch (state) {
-        case Characteristic.SecuritySystemTargetState.STAY_ARM:
+        case Characteristic.SecuritySystemTargetState.STAY_ARM: //home
             codeToSend = this.isDSC ? this.DSCStay : this.setPIN+'3';
             break;
         case Characteristic.SecuritySystemTargetState.AWAY_ARM :
