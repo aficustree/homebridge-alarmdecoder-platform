@@ -348,12 +348,12 @@ class AlarmdecoderPlatform {
                 throw('disarm request for DSC panel but system is already disarmed, ignoring');
             var response = await axios.post(this.setURL,body,this.axiosHeaderConfig);
             if(response.status==200 || response.status==204) //should be a 204
-                callback(null, response, state);
+                callback(null);
             else
                 throw('set failed');
         }
         catch (err) {
-            callback('set failed',response,this.alarmDecoderSystem.state);
+            callback(err);
             this.log(err);
         }
     }
