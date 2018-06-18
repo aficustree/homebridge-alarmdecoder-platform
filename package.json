@@ -1,8 +1,8 @@
 {
   "name": "homebridge-alarmdecoder-platform",
-  "version": "1.2.0",
+  "version": "1.2.11",
   "description": "An http-based contact and motion sensor plugin for homebridge: https://github.com/nfarina/homebridge, for use with alarmdecoder. Exposes honeywell/dsc alarm system, motion and contact sensors when used with alarmdecoder.",
-  "license": "Apache 2.0",
+  "license": "Apache-2.0",
   "keywords": [
     "homebridge-plugin",
     "homebridge",
@@ -21,7 +21,8 @@
     "url": "https://github.com/aficustree/homebridge-alarmdecoder-platform.git"
   },
   "dependencies": {
-    "axios": "^0.17.1"
+    "axios": "^0.17.1",
+    "debug": "^3.0.0"
   },
   "readmeFilename": "README.md",
   "bugs": {
