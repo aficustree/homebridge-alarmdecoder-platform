@@ -18,6 +18,8 @@
             "zoneURL" : "http://10.0.1.4:2222/api/v1/zones",
             "setURL" : "http://10.0.1.4:2222/api/v1/alarmdecoder/send",
             "setPIN" : "YOUR PIN",
+            "panicKey" : "PANIC BUTTON",
+            "useSwitches" : "TRUE/FALSE",
             "DSCorHoneywell" : "Honeywell",
             "DSCStay" : "<F4>",
             "DSCAway" : "<S5>",
