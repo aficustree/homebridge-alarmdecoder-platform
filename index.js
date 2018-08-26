@@ -300,7 +300,7 @@ class AlarmdecoderPlatform {
                 // set switch states
                 if(report)
                     for(let toggle in this.switchAccessories) 
-                        if (this.switchAccessories[toggle].name == switchToSet)
+                        if (this.switchAccessories[toggle].displayName == switchToSet)
                             this.switchAccessories[toggle].getService(Service.Switch)
                                 .updateCharacteristic(Characteristic.On,true);
                         else
