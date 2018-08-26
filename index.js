@@ -32,7 +32,6 @@ class AlarmdecoderPlatform {
         this.log = log;
         this.port = config.port;
         this.key = config.key;
-        this.useSwitches = config.useSwitches | false;
         this.stateURL = config.stateURL;
         this.zoneURL = config.zoneURL;
         this.setURL = config.setURL;
