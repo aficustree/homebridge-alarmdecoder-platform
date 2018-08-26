@@ -293,9 +293,12 @@ class AlarmdecoderPlatform {
                 }
                 else
                     this.alarmDecoderSystem.state = 3;
-                if(report)
+                if(report) {
                     this.alarmDecoderSystem.accessory.getService(Service.SecuritySystem)
                         .updateCharacteristic(Characteristic.SecuritySystemCurrentState, this.alarmDecoderSystem.state);
+                    this.alarmDecoderSystem.accessory.getService(Service.SecuritySystem)
+                        .updateCharacteristic(Characteristic.SecuritySystemTargetState, this.alarmDecoderSystem.state);      
+                }
                 
                 // set switch states
                 if(report)
