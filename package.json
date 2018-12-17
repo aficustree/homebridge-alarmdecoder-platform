@@ -1,7 +1,7 @@
 {
   "name": "homebridge-alarmdecoder-platform",
-  "version": "2.0.2",
-  "description": "An http-based contact and motion sensor plugin for homebridge: https://github.com/nfarina/homebridge, for use with alarmdecoder. Exposes honeywell/dsc alarm system, motion and contact sensors when used with alarmdecoder.",
+  "version": "3.0.0",
+  "description": "An http-based contact and motion sensor plugin for homebridge: https://github.com/nfarina/homebridge, for use with alarmdecoder. Exposes honeywell/dsc alarm system, motion and contact sensors when used with alarmdecoder or caddx/networX/GE/Interlogix when used whith an NX584.",
   "license": "Apache-2.0",
   "keywords": [
     "homebridge-plugin",
@@ -9,7 +9,11 @@
     "homekit",
     "honeywell",
     "dsc",
-    "ademco"
+    "ademco",
+    "interlogx",
+    "ge",
+    "caddx",
+    "networkX"
   ],
   "engines": {
     "node": ">=8.0.0",
@@ -22,7 +26,7 @@
   },
   "dependencies": {
     "axios": "^0.17.1",
-    "debug": "^3.0.0"
+    "debug": "^3.2.6"
   },
   "readmeFilename": "README.md",
   "bugs": {

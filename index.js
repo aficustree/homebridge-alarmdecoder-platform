@@ -11,26 +11,38 @@ module.exports = function(homebridge){
 };
 
 class AlarmDecoderZone {
-    constructor (zoneID, name, description, accessory) {
+    constructor (zoneID, name, description) {
         this.zoneID = zoneID;
         this.name = name;
         this.description = description;
-        this.accessory = accessory;
         this.faulted = false;
     }
 }
 
 class AlarmDecoderSystem {
-    constructor (accessory) {
-        this.accessory = accessory;
+    constructor (log) {
         this.state = null;
+        this.log = log;
+        this.alarmDecoderZones = []; //used to hold all AlarmDecoderZones, which reference a zone accessory
+    }
+
+    getAlarmState() {
+        throw 'must implement function updating alarm system state and state of all zones';
+    }
+
+    setAlarmState(state) {
+        this.state = state; //clears linter error
+        throw 'must implement function updating alarm system state';
+    }
+
+    initZones() {
+        throw 'must implement functions to populate Zones with AlarmDecoderZone(s)';
     }
 }
 
-class AlarmdecoderPlatform {
-    constructor (log, config, api) {
-        this.log = log;
-        this.port = config.port;
+class HoneywellDSCAlarmDecoderSystem extends AlarmDecoderSystem {
+    constructor (log, config) {
+        super(log);
         this.key = config.key;
         this.stateURL = config.stateURL;
         this.zoneURL = config.zoneURL;
@@ -38,7 +50,6 @@ class AlarmdecoderPlatform {
         this.setPIN = config.setPIN;
         this.panicKey = config.panicKey;
         this.chimeKey = config.chimeKey;
-        this.platformType = config.DSCorHoneywell;
         let rePlatformType = new RegExp('dsc','i');
         if(rePlatformType.exec(this.platformType)) {
             this.isDSC = true;
@@ -47,19 +58,147 @@ class AlarmdecoderPlatform {
             this.DSCReset = config.DSCReset;
             this.DSCExit = config.DSCExit;
         }
-        this.name = config.name;
-        this.securityAccessory = null; //used to hold the security system accessory
-        this.zoneAccessories = []; //used to hold all zone accessories
-        this.switchAccessories = []; //used to hold the state dummy switches
-        this.alarmDecoderZones = []; //used to hold all AlarmDecoderZones, which reference a zone accessory
-        this.alarmDecoderSystem = null; //holds the object that includes the securityaccessory
         this.axiosHeaderConfig = {headers:{
             'Authorization':this.key,
             'Content-Type':'application/json',
             'Accept':'application/json'
         }};
-        this.createSwitch = config.useSwitches;
+    }
 
+    async initZones() {
+        try {
+            this.log('init zones');
+            var response = await axios.get(this.zoneURL,this.axiosHeaderConfig);
+            if (response.status!=200)
+                throw 'platform did not respond';
+            for (let zone in response.data['zones']) {
+                zone = response.data['zones'][zone];
+                this.alarmDecoderZones.push(new AlarmDecoderZone(zone.zone_id,zone.name,zone.description));
+            }
+            return true;
+        }
+        catch (e) {
+            this.log(e);
+            return false;
+        }
+    }
+
+    async getAlarmState() {
+        try {
+            var response = await axios.get(this.stateURL,this.axiosHeaderConfig);
+            if ((response.status==200 || response.status==204) && response.data) {
+                let stateObj = response.data;
+                if(stateObj.last_message_received && (stateObj.last_message_received.includes('NIGHT') || stateObj.last_message_received.includes('INSTANT')))
+                    stateObj.panel_armed_night = true; //map instant mode to night
+
+                /* 0 = stay, 1 = away, 2 = night, 3 = disarmed, 4 = alarm */
+                this.log(JSON.stringify(stateObj));
+                if(stateObj.panel_alarming || stateObj.panel_panicked || stateObj.panel_fire_detected) {
+                    this.state = 4;
+                }
+                else if(stateObj.panel_armed_night) {
+                    this.state = 2;
+                }
+                else if(stateObj.panel_armed_stay) {
+                    this.state = 0;
+                }
+                else if(stateObj.panel_armed) {
+                    this.state = 1;
+                }
+                else
+                    this.state = 3;
+
+                // use state object to update zones
+                for(let alarmZone in this.alarmDecoderZones) {
+                    alarmZone=this.alarmDecoderZones[alarmZone];
+                    if(stateObj.panel_zones_faulted.indexOf(alarmZone.zoneID)!=-1)
+                        alarmZone.faulted = true;
+                    else
+                        alarmZone.faulted = false;
+
+                }
+                return true;
+            }
+            else 
+                throw 'null response received from alarmsystem query, is your controller up? status code '+response.status;
+        }
+        catch (e) {
+            this.log(e);
+            return false;
+        }
+    }
+
+    async setAlarmState(state) {
+        var codeToSend = null;
+        switch (state) {
+        case Characteristic.SecuritySystemTargetState.STAY_ARM: //home
+            codeToSend = this.isDSC ? this.DSCStay : this.setPIN+'3';
+            break;
+        case Characteristic.SecuritySystemTargetState.AWAY_ARM :
+            codeToSend = this.isDSC ? this.DSCAway : this.setPIN+'2';
+            break;
+        case Characteristic.SecuritySystemTargetState.NIGHT_ARM:
+            codeToSend = this.setPIN+'33';
+            break;
+        case Characteristic.SecuritySystemTargetState.DISARM:
+            codeToSend = this.setPIN+'1';
+            break;
+        case 4:
+            codeToSend= this.panicKey;
+            state=true;
+            break;
+        case 'chime':
+            codeToSend= this.setPIN+this.chimeKey;
+            state=true;
+            break;
+        }
+        var tempObj = new Object();
+        tempObj.keys=codeToSend;
+        var body = JSON.stringify(tempObj);
+        debug(body);
+        try {
+            // ignore disarm requests if panel is already disarmed and it's a DSC panel (otherwise it rearms itself)
+            if(this.isDSC && (state == Characteristic.SecuritySystemTargetState.DISARM) && (this.state == 3)) {
+                this.log('disarm request for DSC panel but system is already disarmed, ignoring');
+                return true;
+            }
+            var response = await axios.post(this.setURL,body,this.axiosHeaderConfig);
+            if(response.status==200 || response.status==204) //should be a 204
+                return true;
+            else
+                throw 'got status code '+response.status;
+        }
+        catch (err) {
+            this.log(err);
+            return false;
+        }
+    }
+}
+
+class AlarmdecoderPlatform {
+    constructor (log, config, api) {
+        this.log = log;
+        this.port = config.port;
+        this.name = config.name;
+        this.switchAccessories = []; //used to hold the state dummy switches
+        this.alarmDecoderSystem = null; // set of the right class during initPlatform
+        this.createSwitch = config.useSwitches;
+        this.zoneAccessories = [];  // holds accessories pulled from cache before attachment
+        config.DSCorHoneywell ? this.platformType = config.DSCorHoneywell : this.platformType = config.platformType;  // back compatibility
+        
+        // setting alarm class type
+        let rePlatformType = new RegExp('dsc|honeywell','i');
+        if(rePlatformType.exec(this.platformType)) 
+            this.alarmDecoderSystem = new HoneywellDSCAlarmDecoderSystem(log, config);
+        rePlatformType = new RegExp('interlogix|ge|caddx','i');
+        if(rePlatformType.exec(this.platformType)) 
+            this.alarmDecoderSystem = new AlarmDecoderSystem(log, config);
+        if(!this.alarmDecoderSystem) {
+            this.log('no system specified, assuming Honeywell, please add platformType variable to your config.json');
+            this.alarmDecoderSystem = new HoneywellDSCAlarmDecoderSystem(log, config);
+        }
+        this.log('platform class in use: '+this.alarmDecoderSystem.constructor.name);
+        
         if(api) {
             this.api = api;
             this.api.on('didFinishLaunching', ()=>{
@@ -134,14 +273,14 @@ class AlarmdecoderPlatform {
                 .getCharacteristic(Characteristic.SecuritySystemTargetState)
                 .on('get', (callback)=>this.getAlarmState(callback))
                 .on('set', (state,callback)=>{
-                    this.setAlarmState(state,callback);
+                    this.setAlarmtoState(state,callback);
                     accessory.getService(Service.SecuritySystem)
                         .setCharacteristic(Characteristic.SecuritySystemCurrentState,
                             state);
                 });
             accessory.getService(Service.AccessoryInformation)
                 .setCharacteristic(Characteristic.Model, 'alarmdecoder alarm system');
-            this.securityAccessory = accessory;
+            this.alarmDecoderSystem.accessory = accessory;
         }
         else if(accessory.getService(Service.Switch)){
             accessory.getService(Service.Switch)
@@ -157,7 +296,7 @@ class AlarmdecoderPlatform {
 
         accessory.getService(Service.AccessoryInformation)
             .setCharacteristic(Characteristic.Name, accessory.displayName)
-            .setCharacteristic(Characteristic.Manufacturer, 'honeywell/dsc');
+            .setCharacteristic(Characteristic.Manufacturer, 'honeywell/dsc/interlogix');
 
         if (publish) {
             this.log('publishing platform accessory '+accessory.displayName);
@@ -167,82 +306,80 @@ class AlarmdecoderPlatform {
     }
 
     async initPlatform() {
+
         this.log('initalizing platform');
-        try {
-            var response = await axios.get(this.zoneURL,this.axiosHeaderConfig);
-            if (response.status!=200)
-                throw 'platform did not respond';
-            for (let zone in response.data['zones']) {
-                zone = response.data['zones'][zone];
-                var zoneToAdd = new AlarmDecoderZone(zone.zone_id,zone.name,zone.description);
-                var exists = false;
-                // check if zone already exists, otherwise add
-                for(let accessory in this.zoneAccessories) {
-                    accessory = this.zoneAccessories[accessory];
-                    if(accessory.displayName == zone.zone_id+' '+zone.name) {
-                        this.log('found '+accessory.displayName+' from cache, skipping');
-                        exists = true;
-                        accessory.reachable=true;
-                        zoneToAdd.accessory=accessory;
+
+        // if security system wasn't pulled from cache, add
+        if(!this.alarmDecoderSystem.accessory) {
+            this.log('adding security system accessory');
+            let uuid = UUIDGen.generate(this.name);
+            let newAccessory = new Accessory(this.name, uuid);
+            newAccessory.addService(Service.SecuritySystem,this.name);
+            newAccessory.reachable=true;
+            this.addAccessory(newAccessory,true);
+        }
+        else
+            this.log('found security system from cache, skipping');
+
+        // zone setup
+        if(await this.alarmDecoderSystem.initZones()) {
+
+            // go through each cache entry and match to zone
+            for (let zone in this.zoneAccessories) {
+                var cachedZone = this.zoneAccessories[zone];
+                for(let adZone in this.alarmDecoderSystem.alarmDecoderZones) {
+                    let tempZone = this.alarmDecoderSystem.alarmDecoderZones[adZone];
+                    if (cachedZone.displayName == tempZone.zoneID+' '+tempZone.name) { // need to do name match logic, possibly consider UUID work
+                        this.alarmDecoderSystem.alarmDecoderZones[adZone].accessory=cachedZone;
                         break;
                     }
                 }
-                if(!exists) {
-                    let uuid = UUIDGen.generate(zone.zone_id+' '+zone.name);
-                    let newAccessory = new Accessory(zone.zone_id+' '+zone.name, uuid);
+            }
+
+            // go through each zone and if it's missing an accessory then add
+            for(let zone in this.alarmDecoderSystem.alarmDecoderZones) {
+                if(!this.alarmDecoderSystem.alarmDecoderZones[zone].accessory) { //not already loaded
+                    let tempZone = this.alarmDecoderSystem.alarmDecoderZones[zone];
+                    let uuid = UUIDGen.generate(tempZone.zoneID+' '+tempZone.name);
+                    let newAccessory = new Accessory(tempZone.zoneID+' '+tempZone.name, uuid);
                     let reMotion = new RegExp('motion','i');
                     let reSmoke = new RegExp('smoke','i');
                     let reCarbon = new RegExp('carbon','i');
-                    if(reMotion.exec(zone.zone_id+' '+zone.name))
-                        newAccessory.addService(Service.MotionSensor, zone.zone_id+' '+zone.name);
-                    else if(reSmoke.exec(zone.zone_id+' '+zone.name))
-                        newAccessory.addService(Service.SmokeSensor, zone.zone_id+' '+zone.name);
-                    else if(reCarbon.exec(zone.zone_id+' '+zone.name))
-                        newAccessory.addService(Service.CarbonMonoxideSensor, zone.zone_id+' '+zone.name);
+                    if(reMotion.exec(tempZone.zoneID+' '+tempZone.name))
+                        newAccessory.addService(Service.MotionSensor, tempZone.zoneID+' '+tempZone.name);
+                    else if(reSmoke.exec(zone.zoneID+' '+zone.name))
+                        newAccessory.addService(Service.SmokeSensor, tempZone.zoneID+' '+tempZone.name);
+                    else if(reCarbon.exec(tempZone.zoneID+' '+tempZone.name))
+                        newAccessory.addService(Service.CarbonMonoxideSensor, tempZone.zoneID+' '+tempZone.name);
                     else
-                        newAccessory.addService(Service.ContactSensor, zone.zone_id+' '+zone.name);
+                        newAccessory.addService(Service.ContactSensor, tempZone.zoneID+' '+tempZone.name);
                     newAccessory.reachable=true;
+                    this.log(newAccessory);
+                    this.alarmDecoderSystem.alarmDecoderZones[zone].accessory=newAccessory;
                     this.addAccessory(newAccessory,true);
-                    zoneToAdd.accessory=newAccessory;
                 }
-                this.alarmDecoderZones.push(zoneToAdd);
+                else
+                    this.log('found '+this.alarmDecoderSystem.alarmDecoderZones[zone].accessory.displayName+', skipping');
             }
-            if(!this.securityAccessory) {
-                this.log('adding security system accessory');
-                let uuid = UUIDGen.generate(this.name);
-                let newAccessory = new Accessory(this.name, uuid);
-                newAccessory.addService(Service.SecuritySystem,this.name);
-                newAccessory.reachable=true;
-                this.addAccessory(newAccessory,true);
-                this.securityAccessory = newAccessory;
-            }
-            else
-                this.log('found security system from cache, skipping');
-            
-            
-            // remove from create list any switches that are already cached
-            for (let foundSwitch in this.switchAccessories) {
-                this.log('found switch '+this.switchAccessories[foundSwitch].displayName+' from cache, skipping');
-                this.createSwitch.splice(this.createSwitch.indexOf(this.switchAccessories[foundSwitch].displayName), 1);
-            }
+        }
 
-            for (let switchType in this.createSwitch) {
-                this.log('adding switch accessory '+this.createSwitch[switchType]);
-                let uuid = UUIDGen.generate(this.createSwitch[switchType]);
-                let newAccessory = new Accessory(this.createSwitch[switchType], uuid);
-                newAccessory.addService(Service.Switch,this.createSwitch[switchType]);
-                newAccessory.reachable=true;
-                this.addAccessory(newAccessory,true);
-                this.switchAccessories.push(newAccessory);
-            }
-            
-            this.securityAccessory.reachable=true;
-            this.alarmDecoderSystem = new AlarmDecoderSystem(this.securityAccessory);
-            this.getState(true);
+        // remove from create list any switches that are already cached
+        for (let foundSwitch in this.switchAccessories) {
+            this.log('found switch '+this.switchAccessories[foundSwitch].displayName+' from cache, skipping');
+            this.createSwitch.splice(this.createSwitch.indexOf(this.switchAccessories[foundSwitch].displayName), 1);
         }
-        catch (err) {
-            this.log(err);
+
+        for (let switchType in this.createSwitch) {
+            this.log('adding switch accessory '+this.createSwitch[switchType]);
+            let uuid = UUIDGen.generate(this.createSwitch[switchType]);
+            let newAccessory = new Accessory(this.createSwitch[switchType], uuid);
+            newAccessory.addService(Service.Switch,this.createSwitch[switchType]);
+            newAccessory.reachable=true;
+            this.addAccessory(newAccessory,true);
+            this.switchAccessories.push(newAccessory);
         }
+
+        this.getStateFromAlarm(true); //inital state seed
     }
 
     httpListener(req, res) {
@@ -261,106 +398,92 @@ class AlarmdecoderPlatform {
         res.writeHead(200, {'Content-Type': 'text/plain'});
         res.end();
         debug('Getting current state since ping received');
-        this.getState(true);
+        this.getStateFromAlarm(true);
     }
 
-    async getState(report=false) {
+    // private method used by registered functions to get state from Alarm
+    async getStateFromAlarm(report=false) {
         try {
-            var response = await axios.get(this.stateURL,this.axiosHeaderConfig);
-            if (response) {
-                let stateObj = response.data;
-                let switchToSet = null;
-                if(stateObj.last_message_received && (stateObj.last_message_received.includes('NIGHT') || stateObj.last_message_received.includes('INSTANT')))
-                    stateObj.panel_armed_night = true;
-                /* 0 = stay, 1 = away, 2 = night, 3 = disarmed, 4 = alarm */
-                this.log(JSON.stringify(stateObj));
-                if(stateObj.panel_alarming || stateObj.panel_panicked || stateObj.panel_fire_detected) {
-                    this.alarmDecoderSystem.state = 4;
-                    switchToSet = 'panic';
-                }
-                else if(stateObj.panel_armed_night) {
-                    this.alarmDecoderSystem.state = 2;
-                    switchToSet = 'night';
-                }
-                else if(stateObj.panel_armed_stay) {
-                    this.alarmDecoderSystem.state = 0;
-                    switchToSet = 'stay';
-                }
-                else if(stateObj.panel_armed) {
-                    this.alarmDecoderSystem.state = 1;
-                    switchToSet = 'away';
-                }
-                else
-                    this.alarmDecoderSystem.state = 3;
-                if(report) {
-                    this.alarmDecoderSystem.accessory.getService(Service.SecuritySystem)
-                        .updateCharacteristic(Characteristic.SecuritySystemCurrentState, this.alarmDecoderSystem.state);
-                    this.alarmDecoderSystem.accessory.getService(Service.SecuritySystem)
-                        .updateCharacteristic(Characteristic.SecuritySystemTargetState, this.alarmDecoderSystem.state);      
-                }
-                
-                // set switch states
-                if(report)
-                    for(let toggle in this.switchAccessories) 
-                        if (this.switchAccessories[toggle].displayName == switchToSet)
-                            this.switchAccessories[toggle].getService(Service.Switch)
-                                .updateCharacteristic(Characteristic.On,true);
-                        else
-                            this.switchAccessories[toggle].getService(Service.Switch)
-                                .updateCharacteristic(Characteristic.On,false);
-            
-                // set alarm state
-                for(let alarmZone in this.alarmDecoderZones) {
-                    alarmZone=this.alarmDecoderZones[alarmZone];
-                    if(stateObj.panel_zones_faulted.indexOf(alarmZone.zoneID)!=-1)
-                        alarmZone.faulted = true;
-                    else
-                        alarmZone.faulted = false;
-                    if(report) {
-                        if(alarmZone.accessory.getService(Service.MotionSensor)) {
-                            alarmZone.accessory.getService(Service.MotionSensor)
-                                .updateCharacteristic(Characteristic.MotionDetected, alarmZone.faulted);
-                        }
-                        else if(alarmZone.accessory.getService(Service.ContactSensor)) {
-                            if(alarmZone.faulted)
-                                alarmZone.accessory.getService(Service.ContactSensor)
-                                    .updateCharacteristic(Characteristic.ContactSensorState, 1);
-                            else
-                                alarmZone.accessory.getService(Service.ContactSensor)
-                                    .updateCharacteristic(Characteristic.ContactSensorState, 0);
-                        }
-                        else if(alarmZone.accessory.getService(Service.CarbonMonoxideSensor)) {
-                            if(alarmZone.faulted)
-                                alarmZone.accessory.getService(Service.CarbonMonoxideSensor)
-                                    .updateCharacteristic(Characteristic.CarbonMonoxideDetected, 1);
-                            else
-                                alarmZone.accessory.getService(Service.CarbonMonoxideSensor)
-                                    .updateCharacteristic(Characteristic.CarbonMonoxideDetected, 0);
-                        }
-                        else if(alarmZone.accessory.getService(Service.SmokeSensor)) {
-                            if(alarmZone.faulted)
-                                alarmZone.accessory.getService(Service.SmokeSensor)
-                                    .updateCharacteristic(Characteristic.SmokeDetected, 1);
-                            else
-                                alarmZone.accessory.getService(Service.SmokeSensor)
-                                    .updateCharacteristic(Characteristic.SmokeDetected, 0);
-                        }
-                    }
-                }
-            }
+            await this.alarmDecoderSystem.getAlarmState();
         }
         catch (e) {
             this.log(e);
         }
+        /* 0 = stay, 1 = away, 2 = night, 3 = disarmed, 4 = alarm */
+        if(report) {
+            //update alarm
+            this.alarmDecoderSystem.accessory.getService(Service.SecuritySystem)
+                .updateCharacteristic(Characteristic.SecuritySystemCurrentState, this.alarmDecoderSystem.state);
+            this.alarmDecoderSystem.accessory.getService(Service.SecuritySystem)
+                .updateCharacteristic(Characteristic.SecuritySystemTargetState, this.alarmDecoderSystem.state);      
 
+            //update switches
+            var switchToSet=null;
+            switch (this.alarmDecoderSystem.state) {
+            case 0:
+                switchToSet='stay';
+                break;
+            case 1:
+                switchToSet='away';
+                break;
+            case 2:
+                switchToSet='night';
+                break;
+            case 4:
+                switchToSet='panic';
+                break;
+            default:
+                break;
+            }
+            for(let toggle in this.switchAccessories) 
+                if (this.switchAccessories[toggle].displayName == switchToSet)
+                    this.switchAccessories[toggle].getService(Service.Switch)
+                        .updateCharacteristic(Characteristic.On,true);
+                else
+                    this.switchAccessories[toggle].getService(Service.Switch)
+                        .updateCharacteristic(Characteristic.On,false);
+            
+            // update zones
+            for(let alarmZone in this.alarmDecoderSystem.alarmDecoderZones) {
+                alarmZone=this.alarmDecoderSystem.alarmDecoderZones[alarmZone];
+                if(alarmZone.accessory.getService(Service.MotionSensor)) {
+                    alarmZone.accessory.getService(Service.MotionSensor)
+                        .updateCharacteristic(Characteristic.MotionDetected, alarmZone.faulted);
+                }
+                else if(alarmZone.accessory.getService(Service.ContactSensor)) {
+                    if(alarmZone.faulted)
+                        alarmZone.accessory.getService(Service.ContactSensor)
+                            .updateCharacteristic(Characteristic.ContactSensorState, 1);
+                    else
+                        alarmZone.accessory.getService(Service.ContactSensor)
+                            .updateCharacteristic(Characteristic.ContactSensorState, 0);
+                }
+                else if(alarmZone.accessory.getService(Service.CarbonMonoxideSensor)) {
+                    if(alarmZone.faulted)
+                        alarmZone.accessory.getService(Service.CarbonMonoxideSensor)
+                            .updateCharacteristic(Characteristic.CarbonMonoxideDetected, 1);
+                    else
+                        alarmZone.accessory.getService(Service.CarbonMonoxideSensor)
+                            .updateCharacteristic(Characteristic.CarbonMonoxideDetected, 0);
+                }
+                else if(alarmZone.accessory.getService(Service.SmokeSensor)) {
+                    if(alarmZone.faulted)
+                        alarmZone.accessory.getService(Service.SmokeSensor)
+                            .updateCharacteristic(Characteristic.SmokeDetected, 1);
+                    else
+                        alarmZone.accessory.getService(Service.SmokeSensor)
+                            .updateCharacteristic(Characteristic.SmokeDetected, 0);
+                }
+            }
+        }
     }
 
-    getZoneState(displayName, callback) {
+    async getZoneState(displayName, callback) {
         debug('getting state for '+displayName);
-        this.getState(false); //don't publish state as it's being called from homekit and the callback will update instead
+        await this.getStateFromAlarm(false); // avoid out-of-sync errors by getting the whole state tree but don't push, just wait on the callback to do it
         var found = false;
-        for(let alarmZone in this.alarmDecoderZones) {
-            alarmZone=this.alarmDecoderZones[alarmZone];
+        for(let alarmZone in this.alarmDecoderSystem.alarmDecoderZones) {
+            alarmZone=this.alarmDecoderSystem.alarmDecoderZones[alarmZone];
             if((alarmZone.zoneID+' '+alarmZone.name)==displayName) {
                 if(alarmZone.accessory.getService(Service.MotionSensor))
                     callback(null, alarmZone.faulted);
@@ -380,22 +503,18 @@ class AlarmdecoderPlatform {
         }
     }
 
-    getAlarmState(callback) {
+    async getAlarmState(callback) {
         debug('getting state for '+this.name);
-        this.getState(false);
-        if(this.alarmDecoderSystem.state!=null) {
+        if(await this.getStateFromAlarm(false) && (this.alarmDecoderSystem.state!=null)) 
             callback(null,this.alarmDecoderSystem.state);
-        }
         else
-            callback('state is null',null); //would only happen if call occurs and the alarmdecoder-UI is inaccessable, so basically it shouldn't
+            callback('get state failed or null',null); 
     }
 
-    
-
-    getSwitchState(switchType, callback) {
+    async getSwitchState(switchType, callback) {
         /* 0 = stay, 1 = away, 2 = night, 3 = disarmed, 4 = alarm */
         debug('getting state for switch '+ switchType);
-        this.getState(false);
+        await this.getStateFromAlarm(false);
         if(switchType == 'panic' && this.alarmDecoderSystem.state==4)
             callback(null,true);
         else if (switchType == 'stay' && this.alarmDecoderSystem.state==0)
@@ -411,65 +530,28 @@ class AlarmdecoderPlatform {
     async setSwitchState(state, switchType, callback) {
         this.log('setting switch '+switchType+' to '+state);
         if (!state) //switch is turnning off so disarm
-            this.setAlarmState(Characteristic.SecuritySystemTargetState.DISARM, callback);
+            await this.setAlarmtoState(Characteristic.SecuritySystemTargetState.DISARM, callback);
         else {
             if (switchType == 'panic')
-                await this.setAlarmState(4, callback);
+                this.setAlarmtoState(4, callback);
             else if (switchType == 'away')
-                await this.setAlarmState(Characteristic.SecuritySystemTargetState.AWAY_ARM, callback);
+                this.setAlarmtoState(Characteristic.SecuritySystemTargetState.AWAY_ARM, callback);
             else if (switchType == 'night')
-                await this.setAlarmState(Characteristic.SecuritySystemTargetState.NIGHT_ARM, callback);
+                this.setAlarmtoState(Characteristic.SecuritySystemTargetState.NIGHT_ARM, callback);
             else if (switchType == 'stay')
-                await this.setAlarmState(Characteristic.SecuritySystemTargetState.STAY_ARM, callback);
+                this.setAlarmtoState(Characteristic.SecuritySystemTargetState.STAY_ARM, callback);
             else if (switchType == 'chime')
-                await this.setAlarmState('chime',callback);
+                this.setAlarmtoState('chime',callback);
             else   
                 callback('invalid switch type',null);
         }
     }
 
-    async setAlarmState(state, callback) {
+    async setAlarmtoState(state, callback) {
         this.log('setting alarm state to '+state);
-        var codeToSend = null;
-        switch (state) {
-        case Characteristic.SecuritySystemTargetState.STAY_ARM: //home
-            codeToSend = this.isDSC ? this.DSCStay : this.setPIN+'3';
-            break;
-        case Characteristic.SecuritySystemTargetState.AWAY_ARM :
-            codeToSend = this.isDSC ? this.DSCAway : this.setPIN+'2';
-            break;
-        case Characteristic.SecuritySystemTargetState.NIGHT_ARM:
-            codeToSend = this.setPIN+'33';
-            break;
-        case Characteristic.SecuritySystemTargetState.DISARM:
-            codeToSend = this.setPIN+'1';
-            break;
-        case 4:
-            codeToSend= this.panicKey;
-            state=true;
-            break;
-        case 'chime':
-            codeToSend= this.setPIN+this.chimeKey;
-            state=true;
-            break;
-        }
-        var tempObj = new Object();
-        tempObj.keys=codeToSend;
-        var body = JSON.stringify(tempObj);
-        debug(body);
-        try {
-            // ignore disarm requests if panel is already disarmed and it's a DSC panel (otherwise it rearms itself)
-            if(this.isDSC && (state == Characteristic.SecuritySystemTargetState.DISARM) && (this.alarmDecoderSystem.state == 3))
-                throw('disarm request for DSC panel but system is already disarmed, ignoring');
-            var response = await axios.post(this.setURL,body,this.axiosHeaderConfig);
-            if(response.status==200 || response.status==204) //should be a 204
-                callback(null,state);
-            else
-                throw('set failed');
-        }
-        catch (err) {
-            callback(err);
-            this.log(err);
-        }
+        if(await this.alarmDecoderSystem.setAlarmState(state))
+            callback(null,state);
+        else
+            callback('set failed',null);
     }
 }
