@@ -155,11 +155,10 @@ class HoneywellDSCAlarmDecoderSystem extends AlarmDecoderSystem {
         var tempObj = new Object();
         tempObj.keys=codeToSend;
         var body = JSON.stringify(tempObj);
-        debug(body);
         try {
             // ignore disarm requests if panel is already disarmed and it's a DSC panel (otherwise it rearms itself)
             if(this.isDSC && (state == Characteristic.SecuritySystemTargetState.DISARM) && (this.state == 3)) {
-                this.log('disarm request for DSC panel but system is already disarmed, ignoring');
+                debug('disarm request for DSC panel but system is already disarmed, ignoring');
                 return true;
             }
             var response = await axios.post(this.setURL,body,this.axiosHeaderConfig);
@@ -197,7 +196,7 @@ class AlarmdecoderPlatform {
             this.log('no system specified, assuming Honeywell, please add platformType variable to your config.json');
             this.alarmDecoderSystem = new HoneywellDSCAlarmDecoderSystem(log, config);
         }
-        this.log('platform class in use: '+this.alarmDecoderSystem.constructor.name);
+        debug('platform class in use: '+this.alarmDecoderSystem.constructor.name);
         
         if(api) {
             this.api = api;
@@ -323,7 +322,6 @@ class AlarmdecoderPlatform {
 
         // zone setup
         if(await this.alarmDecoderSystem.initZones()) {
-
             // go through each cache entry and match to zone
             for (let zone in this.zoneAccessories) {
                 var cachedZone = this.zoneAccessories[zone];
@@ -359,7 +357,7 @@ class AlarmdecoderPlatform {
                     this.addAccessory(newAccessory,true);
                 }
                 else
-                    this.log('found '+this.alarmDecoderSystem.alarmDecoderZones[zone].accessory.displayName+', skipping');
+                    this.log('found '+this.alarmDecoderSystem.alarmDecoderZones[zone].accessory.displayName+',from cache, skipping');
             }
         }
 
@@ -370,7 +368,7 @@ class AlarmdecoderPlatform {
         }
 
         for (let switchType in this.createSwitch) {
-            this.log('adding switch accessory '+this.createSwitch[switchType]);
+            debug('adding switch accessory '+this.createSwitch[switchType]);
             let uuid = UUIDGen.generate(this.createSwitch[switchType]);
             let newAccessory = new Accessory(this.createSwitch[switchType], uuid);
             newAccessory.addService(Service.Switch,this.createSwitch[switchType]);
@@ -379,7 +377,7 @@ class AlarmdecoderPlatform {
             this.switchAccessories.push(newAccessory);
         }
 
-        this.getStateFromAlarm(true); //inital state seed
+        this._getStateFromAlarm(true); //inital state seed
     }
 
     httpListener(req, res) {
@@ -398,16 +396,17 @@ class AlarmdecoderPlatform {
         res.writeHead(200, {'Content-Type': 'text/plain'});
         res.end();
         debug('Getting current state since ping received');
-        this.getStateFromAlarm(true);
+        this._getStateFromAlarm(true);
     }
 
     // private method used by registered functions to get state from Alarm
-    async getStateFromAlarm(report=false) {
+    async _getStateFromAlarm(report=false) {
         try {
             await this.alarmDecoderSystem.getAlarmState();
         }
         catch (e) {
             this.log(e);
+            return false;
         }
         /* 0 = stay, 1 = away, 2 = night, 3 = disarmed, 4 = alarm */
         if(report) {
@@ -476,11 +475,13 @@ class AlarmdecoderPlatform {
                 }
             }
         }
+
+        return true;
     }
 
     async getZoneState(displayName, callback) {
         debug('getting state for '+displayName);
-        await this.getStateFromAlarm(false); // avoid out-of-sync errors by getting the whole state tree but don't push, just wait on the callback to do it
+        await this._getStateFromAlarm(false); // avoid out-of-sync errors by getting the whole state tree but don't push, just wait on the callback to do it
         var found = false;
         for(let alarmZone in this.alarmDecoderSystem.alarmDecoderZones) {
             alarmZone=this.alarmDecoderSystem.alarmDecoderZones[alarmZone];
@@ -505,7 +506,7 @@ class AlarmdecoderPlatform {
 
     async getAlarmState(callback) {
         debug('getting state for '+this.name);
-        if(await this.getStateFromAlarm(false) && (this.alarmDecoderSystem.state!=null)) 
+        if(await this._getStateFromAlarm(false) && this.alarmDecoderSystem.state) 
             callback(null,this.alarmDecoderSystem.state);
         else
             callback('get state failed or null',null); 
@@ -514,7 +515,7 @@ class AlarmdecoderPlatform {
     async getSwitchState(switchType, callback) {
         /* 0 = stay, 1 = away, 2 = night, 3 = disarmed, 4 = alarm */
         debug('getting state for switch '+ switchType);
-        await this.getStateFromAlarm(false);
+        await this._getStateFromAlarm(false);
         if(switchType == 'panic' && this.alarmDecoderSystem.state==4)
             callback(null,true);
         else if (switchType == 'stay' && this.alarmDecoderSystem.state==0)
@@ -528,7 +529,7 @@ class AlarmdecoderPlatform {
     }
 
     async setSwitchState(state, switchType, callback) {
-        this.log('setting switch '+switchType+' to '+state);
+        debug('setting switch '+switchType+' to '+state);
         if (!state) //switch is turnning off so disarm
             await this.setAlarmtoState(Characteristic.SecuritySystemTargetState.DISARM, callback);
         else {
@@ -548,7 +549,7 @@ class AlarmdecoderPlatform {
     }
 
     async setAlarmtoState(state, callback) {
-        this.log('setting alarm state to '+state);
+        debug('setting alarm state to '+state);
         if(await this.alarmDecoderSystem.setAlarmState(state))
             callback(null,state);
         else
