@@ -1,8 +1,17 @@
-class AlarmDecoderSystem {
+class AlarmZone {
+    constructor (zoneID, name, description) {
+        this.zoneID = zoneID;
+        this.name = name;
+        this.description = description;
+        this.faulted = false;
+    }
+}
+
+class AlarmBase {
     constructor (log) {
         this.state = null;
         this.log = log;
-        this.alarmDecoderZones = []; //used to hold all AlarmDecoderZones, which reference a zone accessory
+        this.alarmZones = []; //used to hold all AlarmDecoderZones, which reference a zone accessory
     }
 
     getAlarmState() {
@@ -18,3 +27,6 @@ class AlarmDecoderSystem {
         throw 'must implement functions to populate Zones with AlarmDecoderZone(s)';
     }
 }
+
+module.exports.AlarmZone = AlarmZone;
+module.exports.AlarmBase = AlarmBase;
