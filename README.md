@@ -22,7 +22,7 @@ You can find a sample configuration file in this repository.
 
 The configuration options are the following:
 
-Configuration example with explanation
+Configuration example with explanation (some variables are only applicable to certain alarm types)
 
 ```json
     "platforms": [
@@ -49,7 +49,7 @@ Configuration example with explanation
 ```
 
 * The **name** parameter determines the name of the security system you will see in HomeKit.
-* the **key** parameter reflects the API key from the alarmdecoder GUI
+* the **key** parameter reflects the API key from the alarmdecoder GUI (honeywell/DSC only)
 * The **port** parameter reflects the port the alarmdecoder-sensor will listen for updates from alarmdecoder GUI
 * The **stateURL**, **zoneURL** and **setURL** entries show the URL that the plugin will query for the list of zones, the state of the alarm system (and all faulted zones) and the URL to send virtual keypresses. Replcae YOURIP and YOURPORT with the IP and port of the alarmdecoder-webgui interface.
 * The **setPIN** is your PIN that you use to arm/disarm the system. Only type the base pin, do not add the arm/disarm button press (i.e., if you arm the system by typing 12342, your pin is 1234)
@@ -58,7 +58,7 @@ Configuration example with explanation
 * The **platformType** should be set to either "DSC", "Honeywell", or "Interlogix" (use Interlogix for GE/Caddx/NetworX panels) depending on the type of alarm panel
 * Values for **DSCStay**, **DSCAway**, **DSCReset** and **DSCExit** should not be changed and are not used if the panel type is listed as Honeywell or Interlogix
 
-## Configuration of Alarmedecoder GUI
+## Configuration of Alarmedecoder GUI (Honeywell/DSC Only)
 
 * Go to your installation of the Alarmdecoder GUI
 * Go to settings
@@ -77,6 +77,13 @@ Configuration example with explanation
 * URL = the ip address of your homebridge
 * Port = the port as specified above
 * Method = Post
+
+## Supporting Other Panels
+
+* An [Abstract Base Class](./alarmsystems/base.js) is provided to guide development. All three functions must be overridden and appropriate logic added to the initPlatform function in index.js as to instantiate the right class for your panel (by using the PlatformType variable above).
+* The system expect to receive a 'ping' (in the form of an HTTP GET) to the port specified in the config.json. That 'ping' informs the library to query the panel for a full status/zone report `getAlarmState`. This function should update the state variables of any zone and the system itself and return true/false depending on the success of the call.
+* During startup, the system will call `initZones` to get a list of all zones. This will be compared with any cached zones and updated accordingly.
+* The 'setAlarmState' function is called by the platform whenever the user requests a state change. It is expected that the plugin makes the call and returns true/false depending on success of the request. The platform will tell homekit that the target state has been successfully set and wait for the 'ping' to update the current state. if the next ping does not show an updated current state, the target state will be returned to the original value.
 
 ## License
 

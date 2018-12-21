@@ -14,16 +14,16 @@ class AlarmBase {
         this.alarmZones = []; //used to hold all AlarmDecoderZones, which reference a zone accessory
     }
 
-    getAlarmState() {
+    async getAlarmState() {
         throw 'must implement function updating alarm system state and state of all zones';
     }
 
-    setAlarmState(state) {
+    async setAlarmState(state) {
         this.state = state; //clears linter error
         throw 'must implement function updating alarm system state';
     }
 
-    initZones() {
+    async initZones() {
         throw 'must implement functions to populate Zones with AlarmDecoderZone(s)';
     }
 }
