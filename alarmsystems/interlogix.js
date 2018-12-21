@@ -31,7 +31,7 @@ class Interlogix extends alarms.AlarmBase {
             if ((response.status==200 || response.status==204) && response.data) {
                 let mainPartition = response.data['partitions'][0];
                 let stayArmed = mainPartition.condition_flags.includes('Entryguard (stay mode)');
-                if (!(mainPartition.condition_flags.includes('Armed') || mainPartition.condition_flags.includes('Instant')))
+                if (!(mainPartition.armed || mainPartition.condition_flags.includes('Instant')))
                     this.state = 3; //disarmed
                 else { // either alarmed or armed
                     var alarmingConditions = ['Siren on', 'Steady siren on', 'Fire'];
