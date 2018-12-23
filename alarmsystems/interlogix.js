@@ -5,7 +5,6 @@ class Interlogix extends alarms.AlarmBase {
     constructor (log, config) {
         super(log);
         this.axiosConfig = {headers:{
-            'Authorization':this.key,
             'Content-Type':'application/json',
             'Accept':'application/json'
         }};
