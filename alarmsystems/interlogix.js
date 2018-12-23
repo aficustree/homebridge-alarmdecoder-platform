@@ -19,7 +19,7 @@ class Interlogix extends alarms.AlarmBase {
         try {
             // query zone status
             response = await axios.get(this.zoneURL,this.axiosConfig);
-            if ((response.status==200 || response.status==204) && response.data && response.data.zone.length > 0) 
+            if ((response.status==200 || response.status==204) && response.data && response.data.zones.length > 0) 
                 response.data['zones'].foreach((element)=> {
                     this.alarmZones.find(v => v.zoneID === element.number).faulted = element.state;
                 });
