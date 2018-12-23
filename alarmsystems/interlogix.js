@@ -15,9 +15,10 @@ class Interlogix extends alarms.AlarmBase {
     }
 
     async getAlarmState() {
+        var response = null;
         try {
             // query zone status
-            var response = await axios.get(this.zoneURL,this.axiosConfig);
+            response = await axios.get(this.zoneURL,this.axiosConfig);
             if ((response.status==200 || response.status==204) && response.data && response.data.zones) 
                 response.data['zones'].foreach((element)=> {
                     this.alarmZones.find(v => v.zoneID === element.number).faulted = element.state;
@@ -51,6 +52,7 @@ class Interlogix extends alarms.AlarmBase {
             return true;
         }
         catch (e) {
+            this.log(response);
             this.log(e);
             return false;
         }
