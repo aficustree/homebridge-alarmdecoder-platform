@@ -24,7 +24,7 @@ class Interlogix extends alarms.AlarmBase {
                     this.alarmZones.find(v => v.zoneID === element.number).faulted = element.state;
                 });
             else
-                throw 'getAlarmState failed at zone query with response status of '+response.status+' and data of: '+response.data;
+                throw 'getAlarmState failed or generated null data at zone query with response status of '+response.status+' and data of: '+JSON.stringify(response.data);
 
             // query partition status
             response = await axios.get(this.stateURL,this.axiosConfig);
@@ -102,7 +102,7 @@ class Interlogix extends alarms.AlarmBase {
                     this.alarmZones.push(new alarms.AlarmZone(element.number, element.name,JSON.stringify(element.type_flags)))
                 );
             else
-                throw 'initZones failed or generated null data with response status of '+response.status+' with data of '+response.data;    
+                throw 'initZones failed or generated null data with response status of '+response.status+' with data of '+JSON.stringify(response.data);    
             return true;
         }
         catch(e) {
