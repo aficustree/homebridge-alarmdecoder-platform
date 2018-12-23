@@ -19,12 +19,12 @@ class Interlogix extends alarms.AlarmBase {
         try {
             // query zone status
             response = await axios.get(this.zoneURL,this.axiosConfig);
-            if ((response.status==200 || response.status==204) && response.data && response.data.zones) 
+            if ((response.status==200 || response.status==204) && response.data && response.data.zone.length > 0) 
                 response.data['zones'].foreach((element)=> {
                     this.alarmZones.find(v => v.zoneID === element.number).faulted = element.state;
                 });
             else
-                throw 'getAlarmState failed at zone query with response status of '+response.status;
+                throw 'getAlarmState failed at zone query with response status of '+response.status+' and data of: '+response.data;
 
             // query partition status
             response = await axios.get(this.stateURL,this.axiosConfig);
@@ -52,7 +52,6 @@ class Interlogix extends alarms.AlarmBase {
             return true;
         }
         catch (e) {
-            this.log(response);
             this.log(e);
             return false;
         }
@@ -98,12 +97,12 @@ class Interlogix extends alarms.AlarmBase {
             //    zone = response.data['zones'][zone];
             //    this.alarmZones.push(new alarms.AlarmZone(zone.number,zone.name,JSON.stringify(zone.type_flags)));
             //}
-            if ((response.status==200 || response.status==204) && response.data && response.data.zones) 
+            if ((response.status==200 || response.status==204) && response.data && response.data.zones.length > 0) 
                 response.data['zones'].foreach(element => 
                     this.alarmZones.push(new alarms.AlarmZone(element.number, element.name,JSON.stringify(element.type_flags)))
                 );
             else
-                throw 'initZones failed or generated null data with response status of '+response.status;    
+                throw 'initZones failed or generated null data with response status of '+response.status+' with data of '+response.data;    
             return true;
         }
         catch(e) {
