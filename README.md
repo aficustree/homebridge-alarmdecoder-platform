@@ -22,31 +22,13 @@ You can find a sample configuration file in this repository.
 
 The configuration options are the following:
 
-Configuration example with explanation (some variables are only applicable to certain alarm types)
+Configuration examples can be as noted:
 
-```json
-    "platforms": [
-        {
-            "platform" : "alarmdecoder-platform",
-            "name" : "Alarm System",
-            "port" : "PORT TO LISTEN ON",
-            "key" : "YOUR API KEY FROM ALARMDECODER GUI",
-            "stateURL" : "http://YOURIP:YOURPORT/api/v1/alarmdecoder",
-            "zoneURL" : "http://YOURIP:YOURPORT/api/v1/zones",
-            "setURL" : "http://YOURIP:YOURPORT/api/v1/alarmdecoder/send",
-            "setPIN" : "YOUR PIN",
-            "panicKey" : "PANIC BUTTON",
-            "chimeKey" : "9",
-            "useSwitches" : ["panic","chime","away","stay","night"],
-            "platformType" : "Honeywell",
-            "DSCStay" : "<F4>",
-            "DSCAway" : "<S5>",
-            "DSCReset" : "<S7>",
-            "DSCExit" : "<S8>"
-        }
-    ]
+[DSC Example](./sample-dsc-config.json)
 
-```
+[Honeywell Example](./sample-honeywell-config.json)
+
+[Interlogix/GE/NetworX/Caddx](./sample-interlogix-config.json)
 
 * The **name** parameter determines the name of the security system you will see in HomeKit.
 * the **key** parameter reflects the API key from the alarmdecoder GUI (honeywell/DSC only)
@@ -56,7 +38,8 @@ Configuration example with explanation (some variables are only applicable to ce
 * The **useSwitches** provides 'switch' toggles that control the setting of the alarm in away/night/stay mode or to trigger a panic function (or really any arbitrary command). **USING THIS FEATURE FOR AWAY/NIGHT/STAY/DISARM IS A SECURITY RISK (panic and chime are fine)** as you can now control your alarm via Siri without unlocking your iDevice (i.e., if you have a homepod someone could scream 'hey siri, turn off my Alarm Away'). This is useful if you don't care and want to control your alarm through an automation (like a geofence) without authenticating via your phone.
 * **Panic Key** is the key used to trigger the panic alarm (either silent or audible). By flipping this switch your alarm will go into panic mode (and your neighbors may be displeased).
 * The **platformType** should be set to either "DSC", "Honeywell", or "Interlogix" (use Interlogix for GE/Caddx/NetworX panels) depending on the type of alarm panel
-* Values for **DSCStay**, **DSCAway**, **DSCReset** and **DSCExit** should not be changed and are not used if the panel type is listed as Honeywell or Interlogix
+* Values for **DSCStay**, **DSCAway**, **DSCReset** and **DSCExit** are DSC specific
+* Interlogix plugin does not support panic or chime buttons at this time
 
 ## Configuration of Alarmedecoder GUI (Honeywell/DSC Only)
 

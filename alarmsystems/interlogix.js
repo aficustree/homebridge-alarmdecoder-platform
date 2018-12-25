@@ -93,10 +93,6 @@ class Interlogix extends alarms.AlarmBase {
     async initZones() {
         try {
             var response = await axios.get(this.zoneURL,this.axiosConfig);
-            //for (let zone in response.data['zones']) {
-            //    zone = response.data['zones'][zone];
-            //    this.alarmZones.push(new alarms.AlarmZone(zone.number,zone.name,JSON.stringify(zone.type_flags)));
-            //}
             if ((response.status==200 || response.status==204) && response.data && response.data.zones.length > 0) 
                 response.data['zones'].foreach(element => 
                     this.alarmZones.push(new alarms.AlarmZone(element.number, element.name,JSON.stringify(element.type_flags)))

@@ -1,0 +1,24 @@
+{
+    "bridge": {
+        "name": "Homebridge",
+        "username": "CC:22:3D:E3:CE:31",
+        "port": 51826,
+        "pin": "031-45-154"
+    },
+    
+    "description": "This is an example configuration file for the alarmdecoder-platform.",
+
+    "platforms": [
+        {
+            "platform" : "alarmdecoder-platform",
+            "name" : "Alarm System",
+            "port" : "8080",
+            "stateURL" : "http://localhost:5007/partitions",
+            "zoneURL" : "http://localhost:5007/zones",
+            "setURL" : "http://localhost:5007/command",
+            "setPIN" : "1245",
+            "useSwitches" : ["away","stay","night"],
+            "DSCorHoneywell" : "Interlogix"
+        }
+    ]
+}
