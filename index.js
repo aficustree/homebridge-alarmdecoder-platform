@@ -31,6 +31,7 @@ class AlarmdecoderPlatform {
     constructor (log, config, api) {
         this.log = log;
         this.port = config.port;
+        this.pollInterval = config.pollInterval;
         this.key = config.key;
         this.stateURL = config.stateURL;
         this.zoneURL = config.zoneURL;
@@ -65,10 +66,16 @@ class AlarmdecoderPlatform {
             this.api.on('didFinishLaunching', ()=>{
                 this.log('Cached Accessories Loaded');
                 this.initPlatform();
-                this.listener = require('http').createServer((req, res)=>this.httpListener(req, res));
-                this.listener.listen(this.port);
-                this.log('listening on port ' + this.port);
-                this.poller = setInterval(() => this.getState(true), 1000);
+                if (this.port) {
+
+                    this.listener = require('http').createServer((req, res)=>this.httpListener(req, res));
+                    this.listener.listen(this.port);
+                    this.log('listening on port ' + this.port);
+                }
+                if (this.pollInterval) {
+                    this.poller = setInterval(() => this.getState(true), this.pollInterval);
+                    this.log('polling at ' + this.pollInterval + ' interval');
+                }
             });
         }
     }
