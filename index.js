@@ -67,7 +67,8 @@ class AlarmdecoderPlatform {
                 this.initPlatform();
                 this.listener = require('http').createServer((req, res)=>this.httpListener(req, res));
                 this.listener.listen(this.port);
-                this.log('listening on port '+this.port);
+                this.log('listening on port ' + this.port);
+                this.poller = setInterval(() => this.getState(true), 1000);
             });
         }
     }
