@@ -7,7 +7,7 @@ module.exports = function(homebridge){
     Service = homebridge.hap.Service;
     Characteristic = homebridge.hap.Characteristic;
     UUIDGen = homebridge.hap.uuid;
-    homebridge.registerPlatform('homebridge-alarmdecoder-platform', 'alarmdecoder-platform', AlarmdecoderPlatform, true);
+    homebridge.registerPlatform('homebridge-alarmdecoder-platform', 'alarmdecoder-platform', AlarmdecoderPlatform, false);
 };
 
 class AlarmDecoderZone {
