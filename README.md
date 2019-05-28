@@ -3,7 +3,7 @@
 Homebridge dynamic platform plugin for the alarmdecoder (alarmdecoder.com) interface to Honeywell/DSC Systems & Interlogix (formerly GE Security, Caddx, NetworX) Systems.
 
 * For DSC/Homebridge: You must have a functioning [alarmdecoder-webapp](https://www.alarmdecoder.com/wiki/index.php/AlarmDecoder_WebApp) for the homebridge plugin to contact (via the rest API). **Please make sure your webapp is updated** with the latest alarmdecoder python package. The alarmdecoder webui must be setup to push alarm events and zone status changes using the enclosed directions.
-* For Interlogix/GE: You must have the Interlogix NX-584E board or a NX8E alarm system and an installed and a working installation of the [NX584 Interface Library](https://github.com/kk7ds/pynx584) built by [kk7ds](https://github.com/kk7ds)
+* For Interlogix/GE: You must have the Interlogix NX-584E board or a NX8E alarm system and an installed and a working installation of the [NX584 Interface Library](https://github.com/kk7ds/pynx584) built by [kk7ds](https://github.com/kk7ds). Note the *Interlogix branch was written for a friend and is fairly untested, please report any issues*
 
 This plugin exposes the security system and any configured contact sensors or motion sensors (i.e., the security system's zones) to HomeKit/Homebridge for use in further automations.
 
