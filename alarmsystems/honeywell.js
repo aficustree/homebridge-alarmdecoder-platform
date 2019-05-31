@@ -32,8 +32,8 @@ class HoneywellDSC extends alarms.AlarmBase {
         try {
             this.log('init zones');
             var response = await axios.get(this.zoneURL,this.axiosHeaderConfig);
-            if (response.status!=200)
-                throw 'platform did not respond';
+            if (response.status!=200 || !response.data)
+                throw 'initZones failed or generated null data with response status of '+response.status;
             for (let zone in response.data['zones']) {
                 zone = response.data['zones'][zone];
                 this.alarmZones.push(new alarms.AlarmZone(zone.zone_id,zone.name,zone.description));
@@ -83,7 +83,7 @@ class HoneywellDSC extends alarms.AlarmBase {
                 return true;
             }
             else 
-                throw 'null response received from alarmsystem query, is your controller up? status code '+response.status;
+                throw 'getAlarmState failed with response status of '+response.status;
         }
         catch (e) {
             this.log(e);
@@ -95,7 +95,7 @@ class HoneywellDSC extends alarms.AlarmBase {
     async setAlarmState(state) {
         var codeToSend = null;
         switch (state) {
-        case 0: //home
+        case 0: //stay|home
             codeToSend = this.isDSC ? this.DSCStay : this.setPIN+'3';
             break;
         case 1 :
@@ -129,7 +129,7 @@ class HoneywellDSC extends alarms.AlarmBase {
             if(response.status==200 || response.status==204) //should be a 204
                 return true;
             else
-                throw 'got status code '+response.status;
+                throw 'setAlarmState failed with response status of '+response.status;
         }
         catch (err) {
             this.log(err);

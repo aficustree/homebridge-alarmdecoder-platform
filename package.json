@@ -5,12 +5,14 @@
   "license": "Apache-2.0",
   "keywords": [
     "homebridge-plugin",
+    "alarmdecoder",
     "homebridge",
     "homekit",
     "honeywell",
     "dsc",
     "ademco",
     "interlogx",
+    "alarmdecoder",
     "ge",
     "caddx",
     "networkX"

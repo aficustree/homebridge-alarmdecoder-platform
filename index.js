@@ -27,7 +27,7 @@ class AlarmdecoderPlatform {
             this.alarmSystem = new alarms.HoneywellDSC(log, config);
         rePlatformType = new RegExp('interlogix|ge|caddx','i');
         if(rePlatformType.exec(this.platformType)) 
-            this.alarmSystem = new alarms.AlarmBase(log, config);
+            this.alarmSystem = new alarms.Interlogix(log, config);
         if(!this.alarmSystem) {
             this.log('no system specified, assuming Honeywell, please add platformType variable to your config.json');
             this.alarmSystem = new alarms.HoneywellDSC(log, config);
