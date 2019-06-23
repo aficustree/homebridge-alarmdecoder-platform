@@ -22,7 +22,7 @@ class Interlogix extends alarms.AlarmBase {
             if ((response.status==200 || response.status==204) && response.data && response.data.zones.length > 0) {
                 let arr = response.data['zones'];
                 this.log(arr);
-                arr.foreach((element)=> {
+                arr.forEach((element)=> {
                     this.alarmZones.find(v => v.zoneID === element.number).faulted = element.state;
                 });
             }
@@ -99,7 +99,7 @@ class Interlogix extends alarms.AlarmBase {
             if ((response.status==200 || response.status==204) && response.data && response.data.zones.length > 0) {
                 let arr = response.data['zones'];
                 this.log(arr);
-                arr.foreach(element => 
+                arr.forEach(element => 
                     this.alarmZones.push(new alarms.AlarmZone(element.number, element.name,JSON.stringify(element.type_flags)))
                 );
             }
