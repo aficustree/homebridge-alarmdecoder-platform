@@ -19,10 +19,12 @@ class Interlogix extends alarms.AlarmBase {
         try {
             // query zone status
             response = await axios.get(this.zoneURL,this.axiosConfig);
-            if ((response.status==200 || response.status==204) && response.data && response.data.zones.length > 0) 
-                response.data['zones'].foreach((element)=> {
+            if ((response.status==200 || response.status==204) && response.data && response.data.zones.length > 0) {
+                let arr = response.data['zones'];
+                arr.forEach((element)=> {
                     this.alarmZones.find(v => v.zoneID === element.number).faulted = element.state;
                 });
+            }
             else
                 throw 'getAlarmState failed or generated null data at zone query with response status of '+response.status+' and data of: '+JSON.stringify(response.data);
 
@@ -93,10 +95,12 @@ class Interlogix extends alarms.AlarmBase {
     async initZones() {
         try {
             var response = await axios.get(this.zoneURL,this.axiosConfig);
-            if ((response.status==200 || response.status==204) && response.data && response.data.zones.length > 0) 
-                response.data['zones'].foreach(element => 
+            if ((response.status==200 || response.status==204) && response.data && response.data.zones.length > 0) {
+                let arr = response.data['zones'];
+                arr.forEach(element => 
                     this.alarmZones.push(new alarms.AlarmZone(element.number, element.name,JSON.stringify(element.type_flags)))
                 );
+            }
             else
                 throw 'initZones failed or generated null data with response status of '+response.status+' with data of '+JSON.stringify(response.data);    
             return true;
