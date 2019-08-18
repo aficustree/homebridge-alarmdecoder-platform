@@ -72,7 +72,7 @@ Configuration examples can be as noted:
 
 If you found this useful, free free to donate.
 
-[![paypal](https://www.paypalobjects.com/en_US/i/btn/btn_donateCC_LG.gif)](https://www.paypal.com/cgi-bin/webscr?cmd=_donations&hosted_button_id=64GXC73EV4ANN)
+[![paypal](https://www.paypalobjects.com/en_US/i/btn/btn_donateCC_LG.gif)](https://www.paypal.com/cgi-bin/webscr?cmd=_donations&business=64GXC73EV4ANN&currency_code=USD&source=url)
 
 ## License
 
