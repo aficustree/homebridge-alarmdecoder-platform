@@ -181,7 +181,7 @@ class AlarmdecoderPlatform {
                     let reCarbon = new RegExp('carbon','i');
                     if(reMotion.exec(tempZone.zoneID+' '+tempZone.name))
                         newAccessory.addService(Service.MotionSensor, tempZone.zoneID+' '+tempZone.name);
-                    else if(reSmoke.exec(zone.zoneID+' '+zone.name))
+                    else if(reSmoke.exec(tempZone.zoneID+' '+tempZone.name))
                         newAccessory.addService(Service.SmokeSensor, tempZone.zoneID+' '+tempZone.name);
                     else if(reCarbon.exec(tempZone.zoneID+' '+tempZone.name))
                         newAccessory.addService(Service.CarbonMonoxideSensor, tempZone.zoneID+' '+tempZone.name);
