@@ -21,7 +21,7 @@
             "panicKey" : "<S1>",
             "useSwitches" : ["panic","chime","away","stay","night"],
             "DSCorHoneywell" : "DSC",
-            "chimeKey":"9",
+            "chimeKey":"<S9>",
             "DSCStay" : "<F4>",
             "DSCAway" : "<S5>",
             "DSCReset" : "<S7>",

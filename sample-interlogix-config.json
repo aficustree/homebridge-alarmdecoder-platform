@@ -18,7 +18,7 @@
             "setURL" : "http://localhost:5007/command",
             "setPIN" : "1245",
             "useSwitches" : ["away","stay","night"],
-            "DSCorHoneywell" : "Interlogix"
+            "platformType" : "Interlogix"
         }
     ]
 }
