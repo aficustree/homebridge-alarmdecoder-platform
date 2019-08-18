@@ -68,6 +68,12 @@ Configuration examples can be as noted:
 * During startup, the system will call `initZones` to get a list of all zones. This will be compared with any cached zones and updated accordingly.
 * The 'setAlarmState' function is called by the platform whenever the user requests a state change. It is expected that the plugin makes the call and returns true/false depending on success of the request. The platform will tell homekit that the target state has been successfully set and wait for the 'ping' to update the current state. if the next ping does not show an updated current state, the target state will be returned to the original value.
 
+## Donations
+
+If you found this useful, free free to donate.
+
+[![paypal](https://www.paypalobjects.com/en_US/i/btn/btn_donateCC_LG.gif)](https://www.paypal.com/cgi-bin/webscr?cmd=_donations&hosted_button_id=64GXC73EV4ANN)
+
 ## License
 
 Copyright 2018, [aficustree](https://github.com/aficustree)
