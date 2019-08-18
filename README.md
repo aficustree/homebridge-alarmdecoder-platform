@@ -74,6 +74,10 @@ If you found this useful, free free to donate.
 
 [![paypal](https://www.paypalobjects.com/en_US/i/btn/btn_donateCC_LG.gif)](https://www.paypal.com/cgi-bin/webscr?cmd=_donations&business=64GXC73EV4ANN&currency_code=USD&source=url)
 
+## Issues
+
+If you find any issues or just have questions, open an issue on github. I will try my best to answer but only have my own honeywell system to troubleshoot.
+
 ## License
 
 Copyright 2018, [aficustree](https://github.com/aficustree)
