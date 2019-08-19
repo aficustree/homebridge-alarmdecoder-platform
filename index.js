@@ -365,6 +365,8 @@ class AlarmdecoderPlatform {
     }
 
     async setSwitchState(state, switchType, callback) {
+        // ensuring alarm state syncronized before set
+        await this._getStateFromAlarm(false);
         debug('setting switch '+switchType+' to '+state);
         if (!state) //switch is turnning off so disarm
             await this.setAlarmtoState(Characteristic.SecuritySystemTargetState.DISARM, callback);
@@ -385,6 +387,8 @@ class AlarmdecoderPlatform {
     }
 
     async setAlarmtoState(state, callback) {
+        // ensuring alarm state syncronized before set
+        await this._getStateFromAlarm(false);
         debug('setting alarm state to '+state);
         if(await this.alarmSystem.setAlarmState(state))
             callback(null,state);

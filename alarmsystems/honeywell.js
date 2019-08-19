@@ -103,7 +103,7 @@ class HoneywellDSC extends alarms.AlarmBase {
             break;
         case 2:
             // codeToSend = this.setPIN+'33'; // fixing DSC mode per adammoyer16, github issue #5
-            codeToSend = this.isDSC ? this.DSCStay+'1*' : this.setPIN='33';
+            codeToSend = this.isDSC ? this.DSCStay+'*1' : this.setPIN='33';
             break;
         case 3:
             // codeToSend = this.setPIN+'1'; // fixing DSC mode per adammoyer16, github issue #5
@@ -122,9 +122,9 @@ class HoneywellDSC extends alarms.AlarmBase {
         tempObj.keys=codeToSend;
         var body = JSON.stringify(tempObj);
         try {
-            // ignore disarm requests if panel is already disarmed and it's a DSC panel (otherwise it rearms itself)
-            if(this.isDSC && (state == 3) && (this.state == 3)) {
-                debug('disarm request for DSC panel but system is already disarmed, ignoring');
+            // never resend codes to DSC panel otherwise it will toggle alarm
+            if(this.isDSC && (state == this.state)) {
+                debug('change request for DSC panel but system is already in proper state, ignoring');
                 return true;
             }
             var response = await axios.post(this.setURL,body,this.axiosHeaderConfig);
