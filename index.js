@@ -229,9 +229,15 @@ class AlarmdecoderPlatform {
             
             
             // remove from create list any switches that are already cached
-            for (let foundSwitch in this.switchAccessories) {
-                this.log('found switch '+this.switchAccessories[foundSwitch].displayName+' from cache, skipping');
-                this.createSwitch.splice(this.createSwitch.indexOf(this.switchAccessories[foundSwitch].displayName), 1);
+            for (let i in this.switchAccessories) {
+                const foundSwitch = this.switchAccessories[i];
+                this.log('found switch ' + foundSwitch.displayName + ' from cache, skipping');
+                if (this.createSwitch.indexOf(foundSwitch.displayName) == -1) {
+                    this.log('found switch ' + foundSwitch.displayName + ' no longer in config, unregistering');
+                    this.api.unregisterPlatformAccessories('homebridge-alarmdecoder-platform', 'alarmdecoder-platform', [foundSwitch]);
+                } else {
+                    this.createSwitch.splice(this.createSwitch.indexOf(foundSwitch.displayName), 1);
+                }
             }
 
             for (let switchType in this.createSwitch) {
