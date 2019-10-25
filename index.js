@@ -65,17 +65,17 @@ class AlarmdecoderPlatform {
             this.api = api;
             this.api.on('didFinishLaunching', ()=>{
                 this.log('Cached Accessories Loaded');
-                this.initPlatform();
-                if (this.port) {
-
-                    this.listener = require('http').createServer((req, res)=>this.httpListener(req, res));
-                    this.listener.listen(this.port);
-                    this.log('listening on port ' + this.port);
-                }
-                if (this.pollInterval) {
-                    this.poller = setInterval(() => this.getState(true), this.pollInterval);
-                    this.log('polling at ' + this.pollInterval + ' interval');
-                }
+                this.initPlatform().then(() => {
+                    if (this.port) {
+                        this.listener = require('http').createServer((req, res)=>this.httpListener(req, res));
+                        this.listener.listen(this.port);
+                        this.log('listening on port ' + this.port);
+                    }
+                    if (this.pollInterval) {
+                        this.poller = setInterval(() => this.getState(true), this.pollInterval);
+                        this.log('polling at ' + this.pollInterval + ' interval');
+                    }
+                });
             });
         }
     }
