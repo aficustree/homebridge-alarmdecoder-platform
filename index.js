@@ -1,6 +1,6 @@
 var Accessory, Service, Characteristic, UUIDGen;
-var axios = require('axios'); 
-var debug = require('debug');
+var axios = require('axios');
+var debug = require('debug')('alarmdecoder');
 
 module.exports = function(homebridge){
     Accessory = homebridge.platformAccessory;
@@ -94,15 +94,15 @@ class AlarmdecoderPlatform {
             this.log(accessory.displayName, 'Identify!!!');
             callback();
         });
-        if(accessory.getService(Service.ContactSensor)) { 
+        if(accessory.getService(Service.ContactSensor)) {
             accessory.getService(Service.ContactSensor)
                 .getCharacteristic(Characteristic.ContactSensorState)
                 .on('get', (callback)=>{
                     this.getZoneState(accessory.displayName,callback);
                 });
-            this.zoneAccessories.push(accessory); 
+            this.zoneAccessories.push(accessory);
             accessory.getService(Service.AccessoryInformation)
-                .setCharacteristic(Characteristic.Model, 'alarmdecoder contact sensor');          
+                .setCharacteristic(Characteristic.Model, 'alarmdecoder contact sensor');
         }
         else if(accessory.getService(Service.MotionSensor)) {
             accessory.getService(Service.MotionSensor)
@@ -226,8 +226,8 @@ class AlarmdecoderPlatform {
             }
             else
                 this.log('found security system from cache, skipping');
-            
-            
+
+
             // remove from create list any switches that are already cached
             for (let i in this.switchAccessories) {
                 const foundSwitch = this.switchAccessories[i];
@@ -249,7 +249,7 @@ class AlarmdecoderPlatform {
                 this.addAccessory(newAccessory,true);
                 this.switchAccessories.push(newAccessory);
             }
-            
+
             this.securityAccessory.reachable=true;
             this.alarmDecoderSystem = new AlarmDecoderSystem(this.securityAccessory);
             this.getState(true);
@@ -261,17 +261,17 @@ class AlarmdecoderPlatform {
 
     httpListener(req, res) {
         var data = '';
-		
+
         if (req.method == 'POST') {
             req.on('data', (chunk) => {
                 data += chunk;
-            });		
+            });
             req.on('end', () => {
                 debug('Received notification and body data:');
                 if(this.debug)
                     debug(data.toString());
             });
-        }	
+        }
         res.writeHead(200, {'Content-Type': 'text/plain'});
         res.end();
         debug('Getting current state since ping received');
@@ -309,19 +309,19 @@ class AlarmdecoderPlatform {
                     this.alarmDecoderSystem.accessory.getService(Service.SecuritySystem)
                         .updateCharacteristic(Characteristic.SecuritySystemCurrentState, this.alarmDecoderSystem.state);
                     this.alarmDecoderSystem.accessory.getService(Service.SecuritySystem)
-                        .updateCharacteristic(Characteristic.SecuritySystemTargetState, this.alarmDecoderSystem.state);      
+                        .updateCharacteristic(Characteristic.SecuritySystemTargetState, this.alarmDecoderSystem.state);
                 }
-                
+
                 // set switch states
                 if(report)
-                    for(let toggle in this.switchAccessories) 
+                    for(let toggle in this.switchAccessories)
                         if (this.switchAccessories[toggle].displayName == switchToSet)
                             this.switchAccessories[toggle].getService(Service.Switch)
                                 .updateCharacteristic(Characteristic.On,true);
                         else
                             this.switchAccessories[toggle].getService(Service.Switch)
                                 .updateCharacteristic(Characteristic.On,false);
-            
+
                 // set alarm state
                 for(let alarmZone in this.alarmDecoderZones) {
                     alarmZone=this.alarmDecoderZones[alarmZone];
@@ -380,7 +380,7 @@ class AlarmdecoderPlatform {
                 else { //otherwise contact, smoke or carbon sensor which all use 1/0 in hap-nodejs instead of a bool
                     if(alarmZone.faulted)
                         callback(null,1);
-                    else   
+                    else
                         callback(null,0);
                 }
                 found = true;
@@ -396,14 +396,14 @@ class AlarmdecoderPlatform {
     getAlarmState(callback) {
         debug('getting state for '+this.name);
         this.getState(false);
-        if(this.alarmDecoderSystem.state!=null) {
+        if(this.alarmDecoderSystem && this.alarmDecoderSystem.state!=null) {
             callback(null,this.alarmDecoderSystem.state);
         }
         else
             callback('state is null',null); //would only happen if call occurs and the alarmdecoder-UI is inaccessable, so basically it shouldn't
     }
 
-    
+
 
     getSwitchState(switchType, callback) {
         /* 0 = stay, 1 = away, 2 = night, 3 = disarmed, 4 = alarm */
@@ -436,7 +436,7 @@ class AlarmdecoderPlatform {
                 await this.setAlarmState(Characteristic.SecuritySystemTargetState.STAY_ARM, callback);
             else if (switchType == 'chime')
                 await this.setAlarmState('chime',callback);
-            else   
+            else
                 callback('invalid switch type',null);
         }
     }
