@@ -21,7 +21,7 @@
             "panicKey" : "<S1>",
             "useSwitches" : ["panic","chime","away","stay","night"],
             "DSCorHoneywell" : "Honeywell",
-            "chimeKey":"9",
+            "chimeKey":"9"
         }
     ]
 }
