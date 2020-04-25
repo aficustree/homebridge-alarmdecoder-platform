@@ -38,7 +38,7 @@ class AlarmdecoderPlatform {
             this.api = api;
             this.api.on('didFinishLaunching', ()=>{
                 this.log('Cached Accessories Loaded');
-                this.initPlatform();
+                await this.initPlatform();
                 this.listener = require('http').createServer((req, res)=>this.httpListener(req, res));
                 this.listener.listen(this.port);
                 this.log('listening on port '+this.port);
