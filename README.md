@@ -46,7 +46,9 @@ Configuration examples can be as noted:
 * Go to your installation of the Alarmdecoder GUI
 * Go to settings
 * Notifications
-* Create a new `custom` notification
+* New Notification
+* Notification Type `Custom`
+* Under Notification Events Tab
 * Select / Tick the following:
   * Alarm system is triggered
   * Alarm system stops signaling
@@ -56,9 +58,9 @@ Configuration examples can be as noted:
   * Alarm system is disarmed
   * A zone has faulted
   * A zone has been restored
-* Under 'custom settings'
-* URL = the ip address of your homebridge
-* Port = the port as specified above
+* Under 'custom settings' Tab
+* URL = the ip address of your homebridge including the Port i.e. 127.0.0.1:8888
+* Path = /
 * Method = Post
 
 ## Supporting Other Panels
