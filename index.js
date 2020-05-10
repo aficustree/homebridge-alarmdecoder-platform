@@ -1,5 +1,5 @@
 var Accessory, Service, Characteristic, UUIDGen;
-var debug = require('debug');
+var debug = require('debug')('alarmdecoder');
 var alarms = require('./alarmsystems');
 
 module.exports = function(homebridge){
@@ -56,7 +56,8 @@ class AlarmdecoderPlatform {
     // if cached, no publish, otherwise set publish to true
     addAccessory(accessory, publish) {
         this.log('adding accessory '+ accessory.displayName);
-        accessory.on('identify', (paired, callback) => {
+        // accessory.on('identify', (paired, callback) => {
+        accessory.on('identify', (callback) => { // fix #16
             this.log(accessory.displayName, 'Identify!!!');
             callback();
         });
