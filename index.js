@@ -56,7 +56,7 @@ class AlarmdecoderPlatform {
     // if cached, no publish, otherwise set publish to true
     addAccessory(accessory, publish) {
         this.log('adding accessory '+ accessory.displayName);
-        accessory.on('identify', (paired, callback) => {
+        accessory.on('identify', (callback) => {
             this.log(accessory.displayName, 'Identify!!!');
             callback();
         });
