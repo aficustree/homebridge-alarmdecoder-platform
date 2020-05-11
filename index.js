@@ -1,5 +1,5 @@
 var Accessory, Service, Characteristic, UUIDGen;
-var debug = require('debug');
+var debug = require('debug')('alarmdecoder');
 var alarms = require('./alarmsystems');
 
 module.exports = function(homebridge){
