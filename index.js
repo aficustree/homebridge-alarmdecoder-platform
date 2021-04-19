@@ -355,7 +355,6 @@ class AlarmdecoderPlatform {
         await this._getStateFromAlarm(false);
         if(switchType == 'panic' && this.alarmSystem.state==4)
             callback(null,true);
-        else if (switchType == 'stay' && this.alarmSystem.state==0)
         else if ((switchType == 'stay' || switchType == 'home') && this.alarmSystem.state==0)
             callback(null,true);
         else if (switchType == 'away' && this.alarmSystem.state==1)
