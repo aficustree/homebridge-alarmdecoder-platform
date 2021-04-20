@@ -56,7 +56,8 @@ class AlarmdecoderPlatform {
     // if cached, no publish, otherwise set publish to true
     addAccessory(accessory, publish) {
         this.log('adding accessory '+ accessory.displayName);
-        accessory.on('identify', (callback) => {
+        // accessory.on('identify', (paired, callback) => {
+        accessory.on('identify', (callback) => { // fix #16
             this.log(accessory.displayName, 'Identify!!!');
             callback();
         });
@@ -316,7 +317,7 @@ class AlarmdecoderPlatform {
     }
 
     async getZoneState(displayName, callback) {
-        debug('getting state for '+displayName);
+        debug('getting state for Zone: '+displayName);
         await this._getStateFromAlarm(false); // avoid out-of-sync errors by getting the whole state tree but don't push, just wait on the callback to do it
         var found = false;
         for(let alarmZone in this.alarmSystem.alarmZones) {
@@ -341,8 +342,8 @@ class AlarmdecoderPlatform {
     }
 
     async getAlarmState(callback) {
-        debug('getting state for '+this.name);
-        if(await this._getStateFromAlarm(false) && this.alarmSystem.state) 
+        debug('getting state for Alarm: '+this.name);
+        if(await this._getStateFromAlarm(false) && this.alarmSystem.state>=0) 
             callback(null,this.alarmSystem.state);
         else
             callback('get state failed or null',null); 
@@ -350,7 +351,7 @@ class AlarmdecoderPlatform {
 
     async getSwitchState(switchType, callback) {
         /* 0 = stay, 1 = away, 2 = night, 3 = disarmed, 4 = alarm */
-        debug('getting state for switch '+ switchType);
+        debug('getting state for Switch: '+ switchType);
         await this._getStateFromAlarm(false);
         if(switchType == 'panic' && this.alarmSystem.state==4)
             callback(null,true);
