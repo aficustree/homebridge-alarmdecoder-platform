@@ -6,6 +6,7 @@ var axios = require('axios');
 class HoneywellDSC extends alarms.AlarmBase {
     constructor (log, config) {
         super(log);
+        this.lastlogmsg = '';
         this.key = config.key;
         this.stateURL = config.stateURL;
         this.zoneURL = config.zoneURL;
@@ -55,7 +56,11 @@ class HoneywellDSC extends alarms.AlarmBase {
                     stateObj.panel_armed_night = true; //map instant mode to night
 
                 /* 0 = stay, 1 = away, 2 = night, 3 = disarmed, 4 = alarm */
-                this.log(JSON.stringify(stateObj));
+                var astate = JSON.stringify(stateObj);
+                if this.lastlogmsg != astate {
+                    this.log(astate));
+                    this.lastlogmsg = astate;
+                }
                 if(stateObj.panel_alarming || stateObj.panel_panicked || stateObj.panel_fire_detected) {
                     this.state = 4;
                 }
