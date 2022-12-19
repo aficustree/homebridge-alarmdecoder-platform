@@ -57,8 +57,8 @@ class HoneywellDSC extends alarms.AlarmBase {
 
                 /* 0 = stay, 1 = away, 2 = night, 3 = disarmed, 4 = alarm */
                 var astate = JSON.stringify(stateObj);
-                if this.lastlogmsg != astate {
-                    this.log(astate));
+                if (this.lastlogmsg !== astate) {
+                    this.log(astate);
                     this.lastlogmsg = astate;
                 }
                 if(stateObj.panel_alarming || stateObj.panel_panicked || stateObj.panel_fire_detected) {
