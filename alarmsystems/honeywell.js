@@ -107,7 +107,7 @@ class HoneywellDSC extends alarms.AlarmBase {
             codeToSend = this.isDSC ? this.DSCAway : this.setPIN+'2';
             break;
         case 2:
-            codeToSend = this.setPIN+'33';
+            codeToSend = this.setPIN+'7';
             break;
         case 3:
             codeToSend = this.setPIN+'1';
